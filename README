@@ -1,0 +1,20 @@
+Setting up a Yocto Autobuilder Build Cluster
+============================================
+
+A lot of the autobuilder setup is individual to the circumstances of the
+user. 
+
+Files used for Yocto-Autobuilder Configuration
+----------------------------------------------
+Name: conf/autobuilder.conf 
+Purpose:
+
+This file is used to set autobuilder wide parameters, like where various build
+artifacts are published to, as well as DL_DIR, or if build artifacts should be
+published (needed for production autobuilders, not needed for desktop builders)
+
+
+
+yocto-master/yoctoABConfig.py
+
+
