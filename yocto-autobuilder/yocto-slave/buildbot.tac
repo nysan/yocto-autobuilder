@@ -4,7 +4,7 @@ import os
 from twisted.application import service
 from buildslave.bot import BuildSlave
 
-basedir = r'/home/eflanagan/yocto-slave'
+basedir = r'.'
 rotateLength = 10000000
 maxRotatedFiles = 10
 
@@ -30,7 +30,7 @@ except ImportError:
 buildmaster_host = 'localhost'
 port = 9989
 slavename = 'builder1'
-passwd = 'bar'
+passwd = 'foo'
 keepalive = 600
 usepty = 0
 umask = 022
