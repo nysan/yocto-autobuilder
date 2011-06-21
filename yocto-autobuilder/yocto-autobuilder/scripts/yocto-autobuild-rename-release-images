@@ -1,0 +1,135 @@
+#!/bin/bash
+#
+# Given an output directory and version number, rename the core
+# images to our final yocto naming convention.
+#
+# Copyright (C) 2011 Intel Corp.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+IMAGEDIR=$1
+VERSION=$2
+
+usage() {
+	echo "Usage: $0 <image-dir> <version>"
+	echo "Where image-dir is a directory containing core images"
+	echo "and version is the release version string"
+	exit 1
+}
+
+if [[ -z "$IMAGEDIR" || -z "$VERSION" ]]; then
+	echo "$0: missing argument"
+	usage
+fi
+
+if [ ! -d "$IMAGEDIR" ]; then
+	echo "Error: '$IMAGEDIR' is not a directory"
+	usage
+fi
+
+######
+#
+# DELETE THIS WHEN THIS IS WELL-TESTED
+mkdir "$IMAGEDIR/release"
+cp -a $IMAGEDIR/* "$IMAGEDIR/release/"
+rm -rf "$IMAGEDIR/release/release"
+IMAGEDIR="$IMAGEDIR/release"
+
+#####
+
+perform_rename() {
+	file=$1
+	image_regex=$2
+	kernel_regex=$3
+	modules_regex=$4
+
+	dirname=`dirname $file`
+	filename=`echo $file | awk -F '/' '{ print \$NF }'`
+
+	if [[ "$filename" =~ ^modules ]]; then
+		#echo "$filename is a module archive"
+
+		newfilename=`echo $filename | sed "$modules_regex"`
+		echo "Renaming $filename to $newfilename"
+		mv "$file" "$dirname/$newfilename"
+	elif [[ "$filename" =~ bin$ ]]; then
+		#echo "$filename is a kernel image"
+
+		newfilename=`echo $filename | sed "$kernel_regex"`
+		echo "Renaming $filename to $newfilename"
+		mv "$file" "$dirname/$newfilename"
+
+	else
+		echo "Warning: Skipping unrecognized file $filename"	
+	fi
+
+	if [ $? -ne 0 ]; then
+		echo "Exiting due to error renaming file"
+		exit 1
+	fi
+}
+
+if [ -d "$IMAGEDIR/atom-pc" ]; then
+	image_regex="s/\(core-.*atom-pc\)-[0-9]*\(.*\)/\1-$VERSION\2/"
+	kernel_regex="s/\([^+]*\).*-\(atom-pc\)-[0-9]*\.bin$/\1-\2-$VERSION.bin/"
+	modules_regex="s/\(modules-[0-9.]*\)-.*\(-atom-pc\).*/\1\2-$VERSION.tgz/"
+
+	files=`find $IMAGEDIR/atom-pc -type f`
+	for file in $files; do
+		perform_rename $file $image_regex $kernel_regex $modules_regex
+	done
+fi
+
+
+if [ -d "$IMAGEDIR/emenlow" ]; then
+	image_regex="s/\(core-.*emenlow\)-[0-9]*\(.*\)/\1-$VERSION\2/"
+	kernel_regex="s/\([^+]*\).*-\(emenlow\)-[0-9]*\.bin$/\1-\2-$VERSION.bin/"
+	modules_regex="s/\(modules-[0-9.]*\)-.*\(-emenlow\).*/\1\2-$VERSION.tgz/"
+
+	files=`find $IMAGEDIR/emenlow -type f`
+	for file in $files; do
+		perform_rename $file $image_regex $kernel_regex $modules_regex
+	done
+fi
+
+if [ -d "$IMAGEDIR/qemu" ]; then
+	image_regex="s/\(core-.*qemu[a-z0-9-]*\)-[0-9]*\(.*\)/\1-$VERSION\2/"
+	kernel_regex="s/\([^+]*\).*-\(qemu[a-z0-9-]*\)-[0-9]*\.bin$/\1-\2-$VERSION.bin/"
+	modules_regex="s/\(modules-[0-9.]*\)-.*\(-qemu[a-z0-9-]*\).*/\1\2-$VERSION.tgz/"
+
+	files=`find $IMAGEDIR/qemu -type f`
+	for file in $files; do
+		perform_rename $file $image_regex $kernel_regex $modules_regex
+	done
+fi
+
+if [ -d "$IMAGEDIR/toolchain" ]; then
+	files=`find $IMAGEDIR/toolchain -type f`
+	for file in $files; do
+		#echo "Processing $file"
+		dirname=`dirname $file`
+		filename=`echo $file | awk -F '/' '{ print \$NF }'`
+
+		# Replace everything after toolchain-sdk with the version string:
+		newfilename=`echo $newfilename | sed "s/\(core-.*toolchain-sdk-\).*\.tar\.bz2/\1$VERSION\.tar\.bz2/"`
+
+		echo "Renaming $filename to $newfilename"
+		mv "$file" "$dirname/$newfilename"
+		if [ $? -ne 0 ]; then
+			echo "Exiting due to error renaming file"
+			exit 1
+		fi
+	done
+fi

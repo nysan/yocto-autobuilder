@@ -1,10 +1,9 @@
-
 import os
 
 from twisted.application import service
 from buildbot.master import BuildMaster
 
-basedir = r'/home/eflanagan/dev2/yocto-autobuilder/yocto-master'
+basedir = r'.'
 rotateLength = 1000000
 maxRotatedFiles = None
 

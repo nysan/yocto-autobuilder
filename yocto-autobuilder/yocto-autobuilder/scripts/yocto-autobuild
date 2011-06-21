@@ -1,0 +1,98 @@
+#!/bin/bash
+#
+# Yocto Automated Build Server Enviroment Setup Script
+#
+# Copyright (C) 2011 Intel Corp.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+. $HOME/.yoctoautobuild
+
+TARGETDIR=$BUILDOUTPUT
+CURRDIR=`pwd`
+CURRDIR=`readlink -f $CURRDIR`
+
+echo "ABTARGET is $ABTARGET"
+echo "Commands are $@"
+
+cd $CURRDIR
+
+echo "Changed to $CURRDIR"
+
+BDIR="build"
+source ./oe-init-build-env
+POSTPROCESS=`which yocto-autobuild-postprocess`
+
+if [ "xcomplete" = "x$1" ]; then
+    touch ./tmp/deploy/images/images-complete
+    chmod a+w ./tmp/deploy/images/images-complete
+    if [ "x$POSTPROCESS" != "x" -a -x "$POSTPROCESS" ]; then
+        cd ..
+        $POSTPROCESS complete $ABTARGET $TARGETDIR
+    fi
+    exit 0
+fi
+
+CONFFILE="./conf/auto.conf"
+
+if [ ! -e "$CONFFILE" ]; then
+    if [ ! -d "./conf" ]; then
+        mkdir -p "./conf"
+    fi
+    echo 'PACKAGE_CLASSES = "package_rpm package_deb package_ipk"' > "$CONFFILE"
+    echo 'BB_NUMBER_THREADS = "10"' >> "$CONFFILE"
+    echo 'PARALLEL_MAKE = "-j 16"' >> "$CONFFILE"
+    echo 'SDKMACHINE ?= "i586"' >> "$CONFFILE"
+    echo 'BB_GENERATE_MIRROR_TARBALLS = "1"' >> "$CONFFILE"
+    echo "DL_DIR = \"$SOURCEDIR\"" >> "$CONFFILE"
+    #echo 'INHERIT += "poky-autobuild-notifier"' >> "$CONFFILE"
+    echo 'INHERIT += "rm_work"' >> "$CONFFILE"
+    echo 'MIRRORS = ""' >> "$CONFFILE"
+    echo 'PREMIRRORS = ""' >> "$CONFFILE"
+
+fi
+
+if [ "x$ENABLE_SWABBER" = "xtrue" ]; then
+    echo 'USER_CLASSES += "image-prelink image-swab"' >> "$CONFFILE"
+fi
+
+# Additions needed to work behind a generic proxy
+#SITECONF="./conf/site.conf"
+#
+#if [ ! -e "$SITECONF" ]; then
+#	echo 'SCONF_VERSION = "1"' > "$SITECONF"
+#	echo 'CVS_PROXY_HOST = "proxy.sitename"' >> "$SITECONF"
+#	echo 'CVS_PROXY_PORT = "proxyportnumber"' >> "$SITECONF"
+#	echo 'GIT_PROXY_HOST = "proxy.sitename"' >> "$SITECONF"
+#	echo 'GIT_PROXY_PORT = "proxyportnumber"' >> "$SITECONF"
+#	echo 'GIT_PROXY_COMMAND = "/usr/local/bin/git-proxy"' >> "$SITECONF"
+#fi
+
+bitbake $@
+
+retval=$?
+
+if [ "x$POSTPROCESS" != "x" -a -x "$POSTPROCESS" ]; then
+    cd ..
+    $POSTPROCESS incremental $ABTARGET $TARGETDIR
+fi
+
+if [ $retval -ne 0 ]; then
+    # Create a build failure file flag, which can be used by the
+    # run-on-buildset-success script
+    touch BuildFailure
+fi
+
+exit $retval

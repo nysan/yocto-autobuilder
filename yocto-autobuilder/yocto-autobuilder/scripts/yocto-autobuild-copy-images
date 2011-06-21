@@ -1,0 +1,458 @@
+#!/bin/bash
+#
+# Yocto autobuilder image copying script. This script takes output
+# generated during an autobuidler buildset and copies it into the
+# sepcified deployment base directory.
+#
+# Copyright (C) 2011 Intel Corp.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+TARGET=$1
+RELEASE_TYPE=$2
+DEPLOY_BASE_DIR=$3
+
+function usage() {
+	echo "Usage: $0 <target> [nightly|weekly|milestone] <deploy-base-directory>"
+	echo "Target can be a qemu architecture for qemu images, 'toolchain'"
+	echo "for toollchain images, 'yocto-sources' for a Yocto source tarball,"
+	echo "'release' to generate final release filenames,"
+	echo "'sstate' for shared state packages, 'eclipse-plugin' for Eclipse"
+	echo "plugin output, or ipk, deb, or rpm for associated package feeds"
+	exit 1
+}
+
+if [ $# != 3 ]; then
+	usage
+fi
+
+if [[ "$TARGET" != "qemux86" && "$TARGET" != "qemux86-64" &&
+      "$TARGET" != "qemuarm" && "$TARGET" != "qemumips" &&
+      "$TARGET" != "qemuppc" && "$TARGET" != "emenlow" &&
+      "$TARGET" != "atom-pc" && "$TARGET" != "toolchain" &&
+      "$TARGET" != "beagleboard" && "$TARGET" != "routerstationpro" &&
+      "$TARGET" != "yocto-sources" && "$TARGET" != "release" &&
+      "$TARGET" != "sstate" && "$TARGET" != "eclipse-plugin" &&
+      "$TARGET" != "ipk" && "$TARGET" != "deb" &&
+      "$TARGET" != "rpm" && "$TARGET" != "mpc8315e-rdb" ]]; then
+	echo "Unknown output target '$TARGET'"
+	usage
+fi
+
+if [[ "$RELEASE_TYPE" != "nightly" && "$RELEASE_TYPE" != "weekly" &&
+      "$RELEASE_TYPE" != "milestone" ]]; then
+	echo "Error: Unknown release type '$RELEASE_TYPE'"
+	usage
+fi
+
+if [ ! -d "$DEPLOY_BASE_DIR" ]; then
+	echo "Error: deployment base directory '$DEPLOY_BASE_DIR' does not exist!"
+	usage
+fi
+
+if [ ! -d ./build/tmp/deploy/ ]; then
+	CWD=`pwd`
+	echo "Error: I do not see a build/tmp/deploy/ directory to work from!"
+	echo "Current directory is '$CWD'"
+	exit 1
+fi
+
+# Retrieve the deployment path which was set by yocto-autobuild-preamble
+DEPLOY_BASE_DIR="$DEPLOY_BASE_DIR/$RELEASE_TYPE/"
+DEPLOY_DIR=`cat deploy-dir`
+if [ -z "$DEPLOY_DIR" ]; then
+	echo "Error: Cannot read deployment directory from 'deploydir' file"
+	echo "This file should have been created by yocto-autobuild-preamble"
+	exit 1
+fi
+
+# The "weekly" option to this script is run as a final step on the
+# nightly buildset. If the day of the week is Wednesday, it simply
+# creates a symlink to the nightly build outoupt.
+if [ "x$RELEASE_TYPE" = "xweekly" ]; then
+	BUILD_DATE=`echo $DEPLOY_DIR | sed 's/\(.*\)-/\1/'`
+	DOW=`date -d $BUILD_DATE +%a`
+	if [ "x$DOW" != "xWed" ]; then
+		echo "Skipping weekly build symlinking since build started on $DOW"
+		exit 0
+	else
+		# We expect the nightly build to have been run first,
+		# so let's save disk space by just symlinking the dir
+		NIGHTLY_DIR=$DEPLOY_BASE_DIR/nightly/$DEPLOY_DIR
+		if [ ! -e $NIGHTLY_DIR ]; then
+			echo "Error: nightly dir '$NIGHTLY_DIR' does not exist"
+			echo "(I need it to symlink to in weekly/)"
+			exit 1
+		fi
+		ln -s "$NIGHTLY_DIR" "$DEPLOY_BASE_DIR/weekly/$DEPLOY_DIR"
+		exit 0
+	fi
+fi
+
+DEST="$DEPLOY_BASE_DIR$DEPLOY_DIR"
+if [ ! -d "$DEST" ]; then
+	echo "Error: deployment directory '$DEST' does not exist"
+	exit 1
+fi
+
+cd ./build/tmp/deploy/
+
+# The following is ripe for DRYing up, which will be done once the
+# release process stabilizes further.
+
+cd images
+
+cp gitinfo $DEST/
+
+if [ "$TARGET" = "qemux86" ]; then
+	FILES_QEMUX86=(
+		`readlink bzImage-qemux86.bin`
+		modules-*-qemux86.tgz
+		`readlink core-image-minimal-qemux86.ext3`
+		`readlink core-image-minimal-qemux86.tar.bz2`
+		`readlink core-image-lsb-qemux86.ext3`
+		`readlink core-image-lsb-qemux86.tar.bz2`
+		`readlink core-image-sato-qemux86.ext3`
+		`readlink core-image-sato-qemux86.tar.bz2`
+		`readlink core-image-sdk-qemux86.ext3`
+		`readlink core-image-sdk-qemux86.tar.bz2`
+	)
+
+	mkdir -p $DEST/qemu/qemux86
+	for file in ${FILES_QEMUX86[@]}; do
+		if [ -e $file ]; then
+			echo "Copying $file to $DEST/qemux86/"
+			cp $file $DEST/qemu/qemux86/
+		else
+			echo "WARNING: $file does not exist (due to build failure?)"
+		fi
+	done
+fi
+
+if [ "$TARGET" = "qemux86-64" ]; then
+	FILES_QEMUX86_64=(
+		`readlink bzImage-qemux86-64.bin`
+		modules-*-qemux86-64.tgz
+		`readlink core-image-minimal-qemux86-64.ext3`
+		`readlink core-image-minimal-qemux86-64.tar.bz2`
+		`readlink core-image-lsb-qemux86-64.ext3`
+		`readlink core-image-lsb-qemux86-64.tar.bz2`
+		`readlink core-image-sato-qemux86-64.ext3`
+		`readlink core-image-sato-qemux86-64.tar.bz2`
+		`readlink core-image-sdk-qemux86-64.ext3`
+		`readlink core-image-sdk-qemux86-64.tar.bz2`
+		)
+
+	mkdir -p $DEST/qemu/qemux86-64
+	for file in ${FILES_QEMUX86_64[@]}; do
+		if [ -e $file ]; then
+			echo "Copying $file to $DEST/qemux86-64/"
+			cp $file $DEST/qemu/qemux86-64/
+		else
+			echo "WARNING: $file does not exist (due to build failure?)"
+		fi
+	done
+fi
+
+if [ "$TARGET" = "qemuarm" ]; then
+	FILES_QEMUARM=(
+		`readlink zImage-qemuarm.bin`
+		modules-*-qemuarm.tgz
+		`readlink core-image-minimal-qemuarm.ext3`
+		`readlink core-image-minimal-qemuarm.tar.bz2`
+		`readlink core-image-lsb-qemuarm.ext3`
+		`readlink core-image-lsb-qemuarm.tar.bz2`
+		`readlink core-image-sato-qemuarm.ext3`
+		`readlink core-image-sato-qemuarm.tar.bz2`
+		`readlink core-image-sdk-qemuarm.ext3`
+		`readlink core-image-sdk-qemuarm.tar.bz2`
+		)
+
+	mkdir -p $DEST/qemu/qemuarm
+	for file in ${FILES_QEMUARM[@]}; do
+		if [ -e $file ]; then
+			echo "Copying $file to $DEST/qemuarm/"
+			cp $file $DEST/qemu/qemuarm/
+		else
+			echo "WARNING: $file does not exist (due to build failure?)"
+		fi
+	done
+fi
+
+if [ "$TARGET" = "qemumips" ]; then
+	FILES_QEMUMIPS=(
+		`readlink vmlinux-qemumips.bin`
+		modules-*-qemumips.tgz
+		`readlink core-image-minimal-qemumips.ext3`
+		`readlink core-image-minimal-qemumips.tar.bz2`
+		`readlink core-image-lsb-qemumips.ext3`
+		`readlink core-image-lsb-qemumips.tar.bz2`
+		`readlink core-image-sato-qemumips.ext3`
+		`readlink core-image-sato-qemumips.tar.bz2`
+		`readlink core-image-sdk-qemumips.ext3`
+		`readlink core-image-sdk-qemumips.tar.bz2`
+		)
+
+	mkdir -p $DEST/qemu/qemumips
+	for file in ${FILES_QEMUMIPS[@]}; do
+		if [ -e $file ]; then
+			echo "Copying $file to $DEST/qemumips/"
+			cp $file $DEST/qemu/qemumips/
+		else
+			echo "WARNING: $file does not exist (due to build failure?)"
+		fi
+	done
+fi
+
+if [ "$TARGET" = "qemuppc" ]; then
+	FILES_QEMUPPC=(
+		`readlink zImage-qemuppc.bin`
+		modules-*-qemuppc.tgz
+		`readlink core-image-minimal-qemuppc.ext3`
+		`readlink core-image-minimal-qemuppc.tar.bz2`
+		`readlink core-image-lsb-qemuppc.ext3`
+		`readlink core-image-lsb-qemuppc.tar.bz2`
+		`readlink core-image-sato-qemuppc.ext3`
+		`readlink core-image-sato-qemuppc.tar.bz2`
+		`readlink core-image-sdk-qemuppc.ext3`
+		`readlink core-image-sdk-qemuppc.tar.bz2`
+		)
+
+	mkdir -p $DEST/qemu/qemuppc
+	for file in ${FILES_QEMUPPC[@]}; do
+		if [ -e $file ]; then
+			echo "Copying $file to $DEST/qemuppc/"
+			cp $file $DEST/qemu/qemuppc/
+		else
+			echo "WARNING: $file does not exist (due to build failure?)"
+		fi
+	done
+fi
+
+if [ "$TARGET" = "beagleboard" ]; then
+    FILES_QEMUBBD=(
+        `readlink uImage-beagleboard.bin`
+        modules-*-beagleboard.tgz
+		`readlink core-image-minimal-beagleboard.jffs2`
+    	`readlink core-image-minimal-beagleboard.tar.bz2`
+        `readlink core-image-sato-beagleboard.jffs2`
+        `readlink core-image-sato-beagleboard.tar.bz2`
+        `readlink core-image-sdk-beagleboard.jffs2`
+        `readlink core-image-sdk-beagleboard.tar.bz2`
+	)
+
+    mkdir -p $DEST/qemu/qemubeagleboard
+    for file in ${FILES_QEMUBBD[@]}; do
+        if [ -e $file ]; then
+            echo "Copying $file to $DEST/qemubeagleboard"
+            cp $file $DEST/qemu/qemubeagleboard/
+        else
+            echo "WARNING: $file does not exist (due to build failure?)"
+        fi
+    done
+fi
+
+if [ "$TARGET" = "routerstationpro" ]; then
+    FILES_QEMURSP=(
+        `readlink vmlinux-routerstationpro.bin`
+        modules-*-routerstationpro.tgz
+        `readlink core-image-minimal-routerstationpro.jffs2`
+        `readlink core-image-minimal-routerstationpro.tar.bz2`
+        `readlink core-image-sato-routerstationpro.jffs2`
+        `readlink core-image-sato-routerstationpro.tar.bz2`
+        `readlink core-image-sdk-routerstationpro.jffs2`
+        `readlink core-image-sdk-routerstationpro.tar.bz2`
+    )
+
+    mkdir -p $DEST/qemu/qemurouterstationpro
+    for file in ${FILES_QEMURSP[@]}; do
+        if [ -e $file ]; then
+            echo "Copying $file to $DEST/qemurouterstationpro"
+            cp $file $DEST/qemu/qemurouterstationpro/
+        else
+            echo "WARNING: $file does not exist (due to build failure?)"
+        fi
+    done
+fi
+
+if [ "$TARGET" = "mpc8315e-rdb" ]; then
+    FILES_QEMUMPC=(
+        `readlink uImage-mpc8315e-rdb.bin`
+        modules-*-mpc8315e-rdb.tgz
+        `readlink core-image-minimal-mpc8315e-rdb.jffs2`
+        `readlink core-image-minimal-mpc8315e-rdb.tar.bz2`
+        `readlink core-image-sdk-mpc8315e-rdb.jffs2`
+        `readlink core-image-sdk-mpc8315e-rdb.tar.bz2`
+    )
+
+    mkdir -p $DEST/qemu/qemumpc8315e-rdb
+    for file in ${FILES_QEMUMPC[@]}; do
+        if [ -e $file ]; then
+            echo "Copying $file to $DEST/qemumpc8315e-rdb"
+            cp $file $DEST/qemu/qemumpc8315e-rdb/
+        else
+            echo "WARNING: $file does not exist (due to build failure?)"
+        fi
+    done
+fi
+
+if [ "$TARGET" = "emenlow" ]; then
+	FILES_EMENLOW=(
+		`readlink bzImage-emenlow.bin`
+		modules-*-emenlow.tgz
+		`readlink core-image-minimal-emenlow.ext3`
+		`readlink core-image-minimal-initramfs-emenlow.cpio.gz`
+		`readlink core-image-minimal-initramfs-emenlow.ext3`
+		`readlink core-image-minimal-live-emenlow.hddimg`
+		`readlink core-image-sato-emenlow.ext3`
+		`readlink core-image-sato-live-emenlow.hddimg`
+		`readlink core-image-sdk-emenlow.ext3`
+		`readlink core-image-sdk-live-emenlow.hddimg`
+		)
+
+	mkdir -p $DEST/emenlow/x86_32
+	for file in ${FILES_EMENLOW[@]}; do
+		if [ -e $file ]; then
+			echo "Copying $file to $DEST/qemuppc/"
+			cp $file $DEST/emenlow/x86_32/
+			find $DEST/emenlow/x86_32/ -type f -name "*.hddimg" -exec bzip2 {} \;
+		else
+			echo "WARNING: $file does not exist (due to build failure?)"
+		fi
+	done
+fi
+
+if [ "$TARGET" = "atom-pc" ]; then
+	FILES_ATOM_PC=(
+		`readlink bzImage-atom-pc.bin`
+		modules-*-atom-pc.tgz
+		`readlink core-image-minimal-initramfs-atom-pc.cpio.gz`
+		`readlink core-image-minimal-initramfs-atom-pc.ext3`
+		`readlink core-image-minimal-live-atom-pc.hddimg`
+		`readlink core-image-minimal-atom-pc.ext3`
+		`readlink core-image-sato-atom-pc.ext3`
+		`readlink core-image-sato-live-atom-pc.hddimg`
+		`readlink core-image-sdk-live-atom-pc.hddimg`
+		`readlink core-image-sdk-atom-pc.ext3`
+		)
+
+	mkdir -p $DEST/atom-pc/x86_32
+	for file in ${FILES_ATOM_PC[@]}; do
+		if [ -e $file ]; then
+			echo "Copying $file to $DEST/qemuppc/"
+			cp $file $DEST/atom-pc/x86_32/
+			find $DEST/atom-pc/x86_32/ -type f -name "*.hddimg" -exec bzip2 {} \;
+		else
+			echo "WARNING: $file does not exist (due to build failure?)"
+		fi
+	done
+fi
+
+if [ "$TARGET" = "toolchain" ]; then
+	cd ../sdk/
+
+	FILES_TOOLCHAIN_i586=(
+		*glibc-i586-*-toolchain-*.tar.bz2
+		)
+
+	mkdir -p $DEST/toolchain/i586
+	for file in ${FILES_TOOLCHAIN_i586[@]}; do
+		if [ -e $file ]; then
+			echo "Copying $file to $DEST/toolchain/i586/"
+			cp $file $DEST/toolchain/i586/
+		else
+			echo "WARNING: $file does not exist (due to build failure?)"
+		fi
+	done
+
+	FILES_TOOLCHAIN_x86_64=(
+		*glibc-x86_64-*-toolchain-*.tar.bz2
+		)
+
+	mkdir -p $DEST/toolchain/x86_64
+	for file in ${FILES_TOOLCHAIN_x86_64[@]}; do
+		if [ -e $file ]; then
+			echo "Copying $file to $DEST/toolchain/x86_64/"
+			cp $file $DEST/toolchain/x86_64/
+		else
+			echo "WARNING: $file does not exist (due to build failure?)"
+		fi
+	done
+
+	cd ../images/
+fi
+
+cd .. # now in tmp/deploy/
+
+if [ "$TARGET" = "yocto-sources" ]; then
+	if [ -d "../../../yocto-tarball" ]; then
+		cp ../../../yocto-tarball/*.tar.bz2 $DEST/
+	else
+		echo "Error: yocto tarball does not exist, cannot copy!"
+		exit 1
+	fi
+fi
+
+if [ "$TARGET" = "release" ]; then
+	yocto-autobuild-rename-release-images $DEST 0.9
+fi
+
+if [ "$TARGET" = "sstate" ]; then
+	echo "Copying shared state cache to $DEST/sstate-cache/"
+	cp -r ../../sstate-cache $DEST/
+fi
+
+if [ "$TARGET" = "eclipse-plugin" ]; then
+	if [ -d "../../../eclipse-plugin" ]; then
+		mkdir $DEST/eclipse-plugin
+		cp ../../../eclipse-plugin/*.zip $DEST/eclipse-plugin/
+	else
+		echo "Error: eclipse-plugin does not exist, cannot copy!"
+		exit 1
+	fi
+fi
+
+if [ "$TARGET" = "ipk" ]; then
+	if [ -d "ipk" ]; then
+		mkdir -p $DEST/ipk
+		echo "Copying ipk packages to $DEST/ipk/"
+		cp -r ipk/ $DEST/
+	else
+		echo "Error: tmp/deploy/ipk does not exist, cannot copy!"
+		exit 1
+	fi
+fi
+
+if [ "$TARGET" = "deb" ]; then
+	if [ -d "deb" ]; then
+		mkdir -p $DEST/deb
+		echo "Copying deb packages to $DEST/deb/"
+		cp -r deb/ $DEST/
+	else
+		echo "Error: tmp/deploy/deb does not exist, cannot copy!"
+		exit 1
+	fi
+fi
+
+if [ "$TARGET" = "rpm" ]; then
+	if [ -d "rpm" ]; then
+		mkdir -p $DEST/rpm
+		echo "Copying rpm packages to $DEST/rpm/"
+		cp -r rpm/ $DEST/
+	else
+		echo "Error: tmp/deploy/rpm does not exist, cannot copy!"
+		exit 1
+	fi
+fi

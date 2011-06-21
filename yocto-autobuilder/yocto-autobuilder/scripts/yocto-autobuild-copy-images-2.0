@@ -1,0 +1,425 @@
+#!/bin/bash
+#
+# Yocto autobuilder image copying script. This script takes output
+# generated during an autobuidler buildset and copies it into the
+# sepcified deployment base directory.
+#
+# Copyright (C) 2011 Intel Corp.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+TARGET=$1
+RELEASE_TYPE=$2
+DEPLOY_BASE_DIR=$3
+
+function usage() {
+	echo "Usage: $0 <target> [nightly|weekly|milestone] <deploy-base-directory>"
+	echo "Target can be a qemu architecture for qemu images, 'toolchain'"
+	echo "for toollchain images, 'Yocto-sources' for a Yocto source tarball,"
+	echo "'release' to generate final release filenames,"
+	echo "'sstate' for shared state packages, 'eclipse-plugin' for Eclipse"
+	echo "plugin output, or ipk, deb, or rpm for associated package feeds"
+	exit 1
+}
+
+if [ $# != 3 ]; then
+	usage
+fi
+
+if [[ "$TARGET" != "qemux86" && "$TARGET" != "qemux86-64" &&
+      "$TARGET" != "qemuarm" && "$TARGET" != "qemumips" &&
+      "$TARGET" != "qemuppc" && "$TARGET" != "emenlow" &&
+      "$TARGET" != "atom-pc" && "$TARGET" != "toolchain" &&
+      "$TARGET" != "beagleboard" && "$TARGET" != "routerstationpro" &&
+      "$TARGET" != "yocto-sources" && "$TARGET" != "release" &&
+      "$TARGET" != "sstate" && "$TARGET" != "eclipse-plugin" &&
+      "$TARGET" != "ipk" && "$TARGET" != "deb" &&
+      "$TARGET" != "ipk-lsb" && "$TARGET" != "rpm-lsb" &&
+      "$TARGET" != "crownbay" && "$TARGET" != "emenlow" &&
+      "$TARGET" != "n450" && "$TARGET" != "sugarbay" &&
+      "$TARGET" != "jasperforest" && "$TARGET" != "buildstats" &&
+      "$TARGET" != "rpm" && "$TARGET" != "mpc8315e-rdb" ]]; then
+	echo "Unknown output target '$TARGET'"
+	usage
+fi
+
+if [[ "$RELEASE_TYPE" != "nightly" && "$RELEASE_TYPE" != "weekly" &&
+      "$RELEASE_TYPE" != "milestone" ]]; then
+	echo "Error: Unknown release type '$RELEASE_TYPE'"
+	usage
+fi
+
+if [ ! -d "$DEPLOY_BASE_DIR" ]; then
+	echo "Error: deployment base directory '$DEPLOY_BASE_DIR' does not exist!"
+	usage
+fi
+
+if [ ! -d ./build/tmp/deploy/ ]; then
+	CWD=`pwd`
+	echo "Error: I do not see a build/tmp/deploy/ directory to work from!"
+	echo "Current directory is '$CWD'"
+	exit 1
+fi
+
+# Retrieve the deployment path which was set by yocto-autobuild-preamble
+DEPLOY_BASE_DIR="$DEPLOY_BASE_DIR/$RELEASE_TYPE/"
+DEPLOY_DIR=`cat deploy-dir`
+if [ -z "$DEPLOY_DIR" ]; then
+	echo "Error: Cannot read deployment directory from 'deploydir' file"
+	echo "This file should have been created by yocto-autobuild-preamble"
+	exit 1
+fi
+
+# The "weekly" option to this script is run as a final step on the
+# nightly buildset. If the day of the week is Wednesday, it simply
+# creates a symlink to the nightly build outoupt.
+if [ "x$RELEASE_TYPE" = "xweekly" ]; then
+	BUILD_DATE=`echo $DEPLOY_DIR | sed 's/\(.*\)-/\1/'`
+	DOW=`date -d $BUILD_DATE +%a`
+	if [ "x$DOW" != "xWed" ]; then
+		echo "Skipping weekly build symlinking since build started on $DOW"
+		exit 0
+	else
+		# We expect the nightly build to have been run first,
+		# so let's save disk space by just symlinking the dir
+		NIGHTLY_DIR=$DEPLOY_BASE_DIR/nightly/$DEPLOY_DIR
+		if [ ! -e $NIGHTLY_DIR ]; then
+			echo "Error: nightly dir '$NIGHTLY_DIR' does not exist"
+			echo "(I need it to symlink to in weekly/)"
+			exit 1
+		fi
+		ln -s "$NIGHTLY_DIR" "$DEPLOY_BASE_DIR/weekly/$DEPLOY_DIR"
+		exit 0
+	fi
+fi
+
+DEST="$DEPLOY_BASE_DIR$DEPLOY_DIR"
+if [ ! -d "$DEST" ]; then
+	echo "Error: deployment directory '$DEST' does not exist"
+	exit 1
+fi
+
+cd ./build/tmp/deploy/
+
+# The following is ripe for DRYing up, which will be done once the
+# release process stabilizes further.
+
+cd images
+
+cp gitinfo $DEST/
+
+if [ "$TARGET" = "qemux86" ]; then
+    DEST=$DEST"/machines/qemu/qemu86"
+    for x in `/bin/ls *|grep -v 201|grep $TARGET`; do y=`readlink $x`; FILES_META="$FILES_META $y"; done
+    FILES_META="$FILES_META modules-*-$TARGET.tgz"
+    mkdir -p $DEST
+    for file in ${FILES_META[@]}; do
+            if [ -e $file ]; then
+                    echo "Copying $file to $DEST"
+                    cp $file $DEST
+                    find $DEST -type f -name "*.hddimg" -exec bzip2 {} \;
+            else
+                    echo "WARNING: $file does not exist (due to build failure?)"
+            fi
+    done
+fi
+
+if [ "$TARGET" = "qemux86-64" ]; then
+    DEST=$DEST"/machines/qemu/qemux86_64"
+    for x in `/bin/ls *|grep -v 201|grep $TARGET`; do y=`readlink $x`; FILES_META="$FILES_META $y"; done
+    FILES_META="$FILES_META modules-*-$TARGET.tgz"
+    mkdir -p $DEST
+    for file in ${FILES_META[@]}; do
+            if [ -e $file ]; then
+                    echo "Copying $file to $DEST"
+                    cp $file $DEST
+                    find $DEST -type f -name "*.hddimg" -exec bzip2 {} \;
+            else
+                    echo "WARNING: $file does not exist (due to build failure?)"
+            fi
+    done
+fi
+
+if [ "$TARGET" = "qemuarm" ]; then
+    DEST=$DEST"/machines/qemu/qemuarm"
+    for x in `/bin/ls *|grep -v 201|grep $TARGET`; do y=`readlink $x`; FILES_META="$FILES_META $y"; done
+    FILES_META="$FILES_META modules-*-$TARGET.tgz"
+    mkdir -p $DEST
+    for file in ${FILES_META[@]}; do
+            if [ -e $file ]; then
+                    echo "Copying $file to $DEST"
+                    cp $file $DEST
+                    find $DEST -type f -name "*.hddimg" -exec bzip2 {} \;
+            else
+                    echo "WARNING: $file does not exist (due to build failure?)"
+            fi
+    done
+fi
+
+if [ "$TARGET" = "qemumips" ]; then
+    DEST=$DEST"/machines/qemu/qemumips"
+    for x in `/bin/ls *|grep -v 201|grep $TARGET`; do y=`readlink $x`; FILES_META="$FILES_META $y"; done
+    FILES_META="$FILES_META modules-*-$TARGET.tgz"
+    mkdir -p $DEST
+    for file in ${FILES_META[@]}; do
+            if [ -e $file ]; then
+                    echo "Copying $file to $DEST"
+                    cp $file $DEST
+                    find $DEST -type f -name "*.hddimg" -exec bzip2 {} \;
+            else
+                    echo "WARNING: $file does not exist (due to build failure?)"
+            fi
+    done
+fi
+
+if [ "$TARGET" = "qemuppc" ]; then
+    DEST=$DEST"/machines/qemu/qemuppc"
+    for x in `/bin/ls *|grep -v 201|grep $TARGET`; do y=`readlink $x`; FILES_META="$FILES_META $y"; done
+    FILES_META="$FILES_META modules-*-$TARGET.tgz"
+    mkdir -p $DEST
+    for file in ${FILES_META[@]}; do
+            if [ -e $file ]; then
+                    echo "Copying $file to $DEST"
+                    cp $file $DEST
+                    find $DEST -type f -name "*.hddimg" -exec bzip2 {} \;
+            else
+                    echo "WARNING: $file does not exist (due to build failure?)"
+            fi
+    done
+fi
+
+if [ "$TARGET" = "beagleboard" ]; then
+    DEST=$DEST"/machines/"$TARGET"/arm"
+    for x in `/bin/ls *|grep -v 201|grep $TARGET`; do y=`readlink $x`; FILES_META="$FILES_META $y"; done
+    FILES_META="$FILES_META modules-*-$TARGET.tgz"
+    mkdir -p $DEST
+    for file in ${FILES_META[@]}; do
+            if [ -e $file ]; then
+                    echo "Copying $file to $DEST"
+                    cp $file $DEST
+                    find $DEST -type f -name "*.hddimg" -exec bzip2 {} \;
+            else
+                    echo "WARNING: $file does not exist (due to build failure?)"
+            fi
+    done
+fi
+
+if [ "$TARGET" = "routerstationpro" ]; then
+    DEST=$DEST"/machines/"$TARGET"/mips"
+    for x in `/bin/ls *|grep -v 201|grep $TARGET`; do y=`readlink $x`; FILES_META="$FILES_META $y"; done
+    FILES_META="$FILES_META modules-*-$TARGET.tgz"
+    mkdir -p $DEST
+    for file in ${FILES_META[@]}; do
+            if [ -e $file ]; then
+                    echo "Copying $file to $DEST"
+                    cp $file $DEST
+                    find $DEST -type f -name "*.hddimg" -exec bzip2 {} \;
+            else
+                    echo "WARNING: $file does not exist (due to build failure?)"
+            fi
+    done
+fi
+
+if [ "$TARGET" = "mpc8315e-rdb" ]; then
+    DEST=$DEST"/machines/"$TARGET"/ppc"
+    for x in `/bin/ls *|grep -v 201|grep $TARGET`; do y=`readlink $x`; FILES_META="$FILES_META $y"; done
+    FILES_META="$FILES_META modules-*-$TARGET.tgz"
+    mkdir -p $DEST
+    for file in ${FILES_META[@]}; do
+            if [ -e $file ]; then
+                    echo "Copying $file to $DEST"
+                    cp $file $DEST
+                    find $DEST -type f -name "*.hddimg" -exec bzip2 {} \;
+            else
+                    echo "WARNING: $file does not exist (due to build failure?)"
+            fi
+    done
+fi
+
+
+
+if [ "$TARGET" = "atom-pc" ]; then
+	DEST=$DEST"/machines/"$TARGET"/x86_32/"
+    #This is a much easier way to get and maintain the file list. good for the next 9 years or until someone changes
+    #naming conventions
+    for x in `/bin/ls *|grep -v 201|grep $TARGET`; do y=`readlink $x`; FILES_META="$FILES_META $y"; done
+    FILES_META="$FILES_META modules-*-$TARGET.tgz"
+    mkdir -p $DEST
+    for file in ${FILES_META[@]}; do
+            if [ -e $file ]; then
+                    echo "Copying $file to $DEST"
+                    cp $file $DEST
+                    find $DEST -type f -name "*.hddimg" -exec bzip2 {} \;
+            else
+                    echo "WARNING: $file does not exist (due to build failure?)"
+            fi
+    done
+fi
+
+######################
+#
+# Being clever here since maintaining file lists
+# is overhead I don't want to do. So what we do 
+# is grab everything that isn't built in the year 201*
+# and  isn't modules and readlink it and add it to the list.
+# as long as the DEST is x86_32 we're good.
+######################
+
+if [[ "$TARGET" = "crownbay" || "$TARGET" = "emenlow" || "$TARGET" = "n450" || 
+     "$TARGET" = "jasperforest" || "$TARGET" = "sugarbay" ]]; then
+        DEST=$DEST"/machines/"$TARGET"/x86_32/"
+        #This is a much easier way to get and maintain the file list. good for the next 9 years or until someone changes
+        #naming conventions
+        for x in `/bin/ls *|grep -v 201`; do y=`readlink $x`; FILES_META="$FILES_META $y"; done
+        FILES_META="$FILES_META modules-*-$TARGET.tgz"
+        mkdir -p $DEST
+        for file in ${FILES_META[@]}; do
+                if [ -e $file ]; then
+                        echo "Copying $file to $DEST"
+                        cp $file $DEST
+                        find $DEST -type f -name "*.hddimg" -exec bzip2 {} \;
+                else
+                        echo "WARNING: $file does not exist (due to build failure?)"
+                fi
+        done
+fi
+
+if [ "$TARGET" = "toolchain" ]; then
+	cd ../sdk/
+
+	FILES_TOOLCHAIN_i586=(
+		*glibc-i686-*-toolchain-*.tar.bz2
+		)
+
+	mkdir -p $DEST/toolchain/i686
+	for file in ${FILES_TOOLCHAIN_i586[@]}; do
+		if [ -e $file ]; then
+			echo "Copying $file to $DEST/toolchain/i686/"
+			cp $file $DEST/toolchain/i686/
+		else
+			echo "WARNING: $file does not exist (due to build failure?)"
+		fi
+	done
+
+	FILES_TOOLCHAIN_x86_64=(
+		*glibc-x86_64-*-toolchain-*.tar.bz2
+		)
+
+	mkdir -p $DEST/toolchain/x86_64
+	for file in ${FILES_TOOLCHAIN_x86_64[@]}; do
+		if [ -e $file ]; then
+			echo "Copying $file to $DEST/toolchain/x86_64/"
+			cp $file $DEST/toolchain/x86_64/
+		else
+			echo "WARNING: $file does not exist (due to build failure?)"
+		fi
+	done
+
+	cd ../images/
+fi
+
+cd .. # now in tmp/deploy/
+
+if [ "$TARGET" = "buildstats" ]; then
+    mkdir -p $DEST/buildstats
+	if [ -d "../buildstats" ]; then
+		rsync -zvr ../buildstats $DEST/buildstats
+	else
+		echo "Error: Buildstats does not exist, cannot copy!"
+		exit 1
+	fi
+fi
+
+if [ "$TARGET" = "yocto-sources" ]; then
+	if [ -d "../../../yocto-tarball" ]; then
+		cp ../../../yocto-tarball/*.tar.bz2 $DEST/
+	else
+		echo "Error: Yocto tarball does not exist, cannot copy!"
+		exit 1
+	fi
+fi
+
+if [ "$TARGET" = "release" ]; then
+	yocto-autobuild-rename-release-images $DEST 0.9
+fi
+
+if [ "$TARGET" = "sstate" ]; then
+	echo "Copying shared state cache to $DEST/sstate-cache/"
+	cp -r ~/sstate-cache $DEST/
+fi
+
+if [ "$TARGET" = "eclipse-plugin" ]; then
+	if [ -d "../../../eclipse-plugin" ]; then
+		mkdir $DEST/eclipse-plugin
+		cp ../../../eclipse-plugin/*.zip $DEST/eclipse-plugin/
+	else
+		echo "Error: eclipse-plugin does not exist, cannot copy!"
+		exit 1
+	fi
+fi
+
+if [ "$TARGET" = "ipk" ]; then
+	if [ -d "ipk" ]; then
+		mkdir -p $DEST/ipk
+		echo "Copying ipk packages to $DEST/ipk/"
+		cp -r ipk/ $DEST/
+	else "${AUTOREV}"
+		echo "Error: tmp/deploy/ipk does not exist, cannot copy!"
+		exit 1
+	fi
+fi
+
+if [ "$TARGET" = "deb" ]; then
+	if [ -d "deb" ]; then
+		mkdir -p $DEST/deb
+		echo "Copying deb packages to $DEST/deb/"
+		cp -r deb/ $DEST/
+	else
+		echo "Error: tmp/deploy/deb does not exist, cannot copy!"
+		exit 1
+	fi
+fi
+
+if [ "$TARGET" = "rpm" ]; then
+	if [ -d "rpm" ]; then
+		mkdir -p $DEST/rpm
+		echo "Copying rpm packages to $DEST/rpm/"
+		cp -r rpm/ $DEST/
+	else
+		echo "Error: tmp/deploy/rpm does not exist, cannot copy!"
+		exit 1
+	fi
+fi
+if [ "$TARGET" = "rpm-lsb" ]; then
+	if [ -d "rpm" ]; then
+		mkdir -p $DEST/rpm-lsb
+		echo "Copying rpm packages to $DEST/rpm-lsb/"
+		cp -r rpm/ $DEST/rpm-lsb
+	else "${AUTOREV}"
+		echo "Error: tmp/deploy/rpm does not exist, cannot copy!"
+		exit 1
+	fi
+fi
+if [ "$TARGET" = "ipk-lsb" ]; then
+	if [ -d "ipk" ]; then
+		mkdir -p $DEST/ipk-lsb
+		echo "Copying ipk packages to $DEST/ipk-lsb/"
+		cp -r ipk/ $DEST/ipk-lsb
+	else "${AUTOREV}"
+		echo "Error: tmp/deploy/ipk does not exist, cannot copy!"
+		exit 1
+	fi
+fi
+

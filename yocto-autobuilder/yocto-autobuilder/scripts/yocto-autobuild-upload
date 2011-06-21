@@ -1,0 +1,95 @@
+#!/bin/sh
+#
+# Script to transfer output from a yocto autobuild to a remote host.
+# We mark files wereve already seen and upload a .done file so the remote 
+# host knows when the transfer is complete.
+#
+#
+# Copyright (C) 2011 Intel Corp.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+USER=pokyoutput
+HOST=hostname.example.com
+SRCDIR=/home/pokybuild/output
+TARGETDIR=/srv/www/pokylinux.org/output-upload
+KEY=/home/pokybuild/outputsshkey
+LOCK=$HOME/yocto-uploader-active
+
+function trap_handler {
+    rm $LOCK
+    exit
+}
+
+trap trap_handler INT
+trap trap_handler TERM
+
+cd $SRCDIR
+
+if [ -e "$LOCK" ]; then
+    exit 0
+fi
+touch $LOCK
+
+for DISTRO in `dir -t`; do
+    cd $SRCDIR/$DISTRO
+    DEST=$USER@$HOST:$TARGETDIR/$DISTRO
+
+    if [ "$DISTRO" = "yocto-incremental" ]; then
+        continue
+    fi
+    if [ "$DISTRO" = "yocto-full" ]; then
+        continue
+    fi
+    if [ "$DISTRO" = "yocto-uricheck" ]; then
+        continue
+    fi
+
+    for REV in `dir -t`; do
+        echo "Considering $SRCDIR/$DISTRO/$REV"
+        cd $SRCDIR/$DISTRO/$REV
+        #if [ ! -e "./complete" ]; then
+        #    continue
+        #fi
+        if [ "$REV" = "ipk" -o "$REV" = "pstage" ]; then
+            #echo "Considerng $REV"
+            # Disabled for now
+            #ssh -i $KEY $USER@$HOST mkdir -p $TARGETDIR/$DISTRO/$REV/
+            #rsync -av --del -e "ssh -i $KEY" $SRCDIR/$DISTRO/$REV $USER@$HOST:$TARGETDIR/$DISTRO/
+            continue
+        fi
+        for FILE in `ls -1`; do
+            #echo "Considerng $FILE"
+            case $FILE in
+            *.done)
+                ;;
+            *)
+                if [ ! -e "$FILE.done" ]; then
+                    #echo ssh -i $KEY -l $USER $HOST mkdir -p $TARGETDIR/$DISTRO/$REV
+                    ssh -i $KEY -l $USER $HOST mkdir -p $TARGETDIR/$DISTRO/$REV
+                    #echo scp -l 200 -i $KEY $FILE $DEST/$REV
+                    # -l 200
+                    scp -i $KEY $FILE $DEST/$REV
+                    touch $FILE.done
+                    scp -i $KEY $FILE.done $DEST/$REV
+                fi
+                ;;
+            esac
+        done
+        #rm $SRCDIR/$DISTRO/$REV -Rf
+    done
+done
+
+trap_handler
