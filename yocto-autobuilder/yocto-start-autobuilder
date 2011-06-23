@@ -45,16 +45,12 @@ AB_BASE=os.path.dirname(os.path.abspath(sys.argv[0]))
 #
 ################################################################################
 ab_config = ConfigParser.ConfigParser()
+
 print "Reading " + os.path.join(AB_BASE, "conf/autobuilder.conf")
 ab_config.read(os.path.join(AB_BASE, "conf/autobuilder.conf"))
 
-print "Setting BUILD_OUTPUT_DIR to " + ab_config.get('BuildArtifacts', 'BUILD_OUTPUT_DIR')
-os.environ["BUILD_OUTPUT_DIR"] = ab_config.get('BuildArtifacts', 'BUILD_OUTPUT_DIR')
-os.environ["PATH"] = os.path.join(AB_BASE, "bin") + \
-                                  ":" + os.environ.get("PATH")
-os.environ["PYTHONPATH"] = os.path.join(AB_BASE, 
-                                        "/lib/python2.6/site-packages/") + \
-                                        ":" + os.environ.get("PYTHONPATH")
+print "Setting BUILD_OUTPUT_DIR to " + ab_config.get('PublishArtifacts', 'BUILD_OUTPUT_DIR')
+os.environ["BUILD_OUTPUT_DIR"] = ab_config.get('PublishArtifacts', 'BUILD_OUTPUT_DIR')
 
 if sys.argv[1] == "master" or sys.argv[1] == "both":
 

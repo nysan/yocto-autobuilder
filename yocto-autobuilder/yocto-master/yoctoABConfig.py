@@ -86,6 +86,9 @@ yocto_builders = []
 # Setup default environment
 defaultenv = {}
 BUILD_OUTPUT_DIR = os.environ.get("BUILD_OUTPUT_DIR")
+BUILD_OUTPUT_SERVER = os.environ.get("BUILD_OUTPUT_SERVER")
+BUILD_OUTPUT_COMMAND = os.environ.get("BUILD_OUTPUT_COMMAND")
+
 # Common command 'macros'
 def runImage(factory, machine, image):
     defaultenv['MACHINE'] = machine
