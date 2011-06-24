@@ -41,27 +41,33 @@ AB_BASE=os.path.dirname(os.path.abspath(sys.argv[0]))
 
 ################################################################################
 #
-#
+# We need to check if they've run setup before. If they haven't, we fail out.
 #
 ################################################################################
-ab_config = ConfigParser.ConfigParser()
+if os.path.isfile(os.path.join(AB_BASE, ".setupdone")):
+    
+    ab_config = ConfigParser.ConfigParser()
 
-print "Reading " + os.path.join(AB_BASE, "conf/autobuilder.conf")
-ab_config.read(os.path.join(AB_BASE, "conf/autobuilder.conf"))
+    print "Reading " + os.path.join(AB_BASE, "conf/autobuilder.conf")
+    ab_config.read(os.path.join(AB_BASE, "conf/autobuilder.conf"))
 
-print "Setting BUILD_OUTPUT_DIR to " + ab_config.get('PublishArtifacts', 'BUILD_OUTPUT_DIR')
-os.environ["BUILD_OUTPUT_DIR"] = ab_config.get('PublishArtifacts', 'BUILD_OUTPUT_DIR')
+    print "Setting BUILD_OUTPUT_DIR to " + ab_config.get('PublishArtifacts', 'BUILD_OUTPUT_DIR')
+    os.environ["BUILD_OUTPUT_DIR"] = ab_config.get('PublishArtifacts', 'BUILD_OUTPUT_DIR')
 
-if sys.argv[1] == "master" or sys.argv[1] == "both":
+    if sys.argv[1] == "master" or sys.argv[1] == "both":
 
-   os.chdir(os.path.join(AB_BASE, "yocto-master"))
-   subprocess.call(["make", "start"])
-   os.chdir(AB_BASE)
+       os.chdir(os.path.join(AB_BASE, "yocto-master"))
+       subprocess.call(["make", "start"])
+       os.chdir(AB_BASE)
 
-if sys.argv[1] == "slave" or sys.argv[1] == "both":
+    if sys.argv[1] == "slave" or sys.argv[1] == "both":
 
-   os.chdir(os.path.join(AB_BASE, "yocto-slave"))
-   subprocess.call(["make", "start"])
-   os.chdir(AB_BASE)
-
+       os.chdir(os.path.join(AB_BASE, "yocto-slave"))
+       subprocess.call(["make", "start"])
+       os.chdir(AB_BASE)
+else:
+    print "You have not sourced ./yocto-setup-autobuilder. Please do so first!"
+    print ""
+    print " . ./yocto-setup-autobuilder"
+    sys.exit(1)
 

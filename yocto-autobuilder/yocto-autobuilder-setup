@@ -1,9 +1,47 @@
+# Yocto Build Server Stetup Script
+# Elizabeth Flanagan <elizabeth.flanagan@intel.com>
+#
+# Copyright (C) 2011 Intel Corp.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
 export PYTHONPATH=`pwd`/lib/python2.6/site-packages/:$PYTHONPATH
 export PATH=`pwd`/bin:$PATH
+config_check=`cat ${PWD}/yocto-master/master.cfg|grep "'<USER>', '<PASS>'"`
+
+#########################################
+#
+# I dislike people touching my .bashrc
+# so, let's warn here that they should add
+# this to their env
+#
+#########################################
 
 echo "#########################################################################"
+echo " Setting envvars. "
+echo " In the future though please add the following to your shell environment: "
+echo ' PYTHONPATH=${PWD}/lib/python2.6/site-packages/:$PYTHONPATH'
+echo ' PATH=${PWD}/bin:$PATH'
+echo ""
 
-if [`cat ${PWD}/yocto-master/master.cfg|grep "users = [('<USER>', '<PASS>')]"` != ""]; then
+##########################
+#
+# Check to see if we've got a username/password set
+#
+##########################
+if [ -n "${config_check:+x}" ]; then
     echo ""
     echo " You've not setup the autobuilder before. Generating a username/password"
     echo " combo for you."
@@ -16,18 +54,17 @@ if [`cat ${PWD}/yocto-master/master.cfg|grep "users = [('<USER>', '<PASS>')]"` !
     echo " Modifying the following files with this username/password:"
     echo ""
     echo " ${PWD}/yocto-master/master.cfg "
-    #sed -i 's/<USER>/$username/g' ${PWD}/yocto-master/master.cfg
-    #sed -i 's/<PASS>/$password/g' ${PWD}/yocto-master/master.cfg
+    sed -i "s/<USER>/$username/g" ${PWD}/yocto-master/master.cfg
+    sed -i "s/<PASS>/$password/g" ${PWD}/yocto-master/master.cfg
 
     echo " ${PWD}/yocto-master/buildbot.tac "
-    #sed -i 's/<USER>/$username/g' ${PWD}/yocto-master/buildbot.tac
-    #sed -i 's/<PASS>/$password/g' ${PWD}/yocto-master/buildbot.tac
+    sed -i "s/<USER>/$username/g" ${PWD}/yocto-master/buildbot.tac
+    sed -i "s/<PASS>/$password/g" ${PWD}/yocto-master/buildbot.tac
 
     echo " ${PWD}/yocto-slave/buildbot.tac "
-    #sed -i 's/<USER>/$username/g' ${PWD}/yocto-slave/buildbot.tac
-    #sed -i 's/<PASS>/$password/g' ${PWD}/yocto-slave/buildbot.tac
+    sed -i "s/<USER>/$username/g" ${PWD}/yocto-slave/buildbot.tac
+    sed -i "s/<PASS>/$password/g" ${PWD}/yocto-slave/buildbot.tac
     echo ""
-    echo " Please use these passwords for the webinterface at http://localhost:8010"
     echo " If you wish to use your own generated username and password please "
     echo " modify the above files as needed. Please see the README and:"
     echo " ${PWD}/autobuilder_examples "
@@ -40,17 +77,10 @@ if [`cat ${PWD}/yocto-master/master.cfg|grep "users = [('<USER>', '<PASS>')]"` !
     echo " Please modify ${PWD}/conf/autobuilder.conf if you wish to specify "
     echo " a different location in which to publish build artifacts, etc."
     echo ""
-    echo ""
-    echo " You now have a very basic developer based setup. For more complex setups"
-    echo " read the README and view the contents of ${PWD}/autobuilder_examples"
-    echo ""
 fi
 echo "#########################################################################"
 echo ""
 echo " Ready to start the yocto autobuilder."
-echo ""
-echo " For yocto-autobuilder assistance please email:"
-echo " Elizabeth Flanagan <elizabeth.flanagan@intel.com>"
 echo ""
 echo " The yocto-autobuilder runs buildbot 0.8.4p1 with some modifications to "
 echo " web-templating. For a full rundown on changes, read the LICENSE and "
@@ -58,11 +88,17 @@ echo " README files "
 echo ""
 echo "#########################################################################"
 echo ""
-echo ""
 echo " To start the autobuilder:"
 echo " ./yocto-start-autobuilder <slave|master|both>"
 echo ""
 echo " To stop the autobuilder:"
 echo " ./yocto-start-autobuilder <slave|master|both>"
 echo ""
-echo ""
+
+################
+#
+# We touch this because we know they've at least run this once
+#
+################
+touch ${PWD}/.setupdone
+
