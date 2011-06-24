@@ -1,0 +1,13 @@
+Setting up a Yocto Autobuilder Build Cluster
+============================================
+
+A lot of the autobuilder setup is individual to the circumstances of the
+user, but this repository contains sample materials which can be used as
+a starting point.
+
+The core script which when run, sets up the current user with a buildbot
+install. Please see INSTALL for more details.
+
+
+autobuilder-examples/yoctoABConfig.py.yocto_project.example
+
