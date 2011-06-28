@@ -1,0 +1,6 @@
+sqlalchemy >= 0.5
+decorator
+tempita
+
+[docs]
+sphinx >= 0.5
