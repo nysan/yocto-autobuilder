@@ -46,13 +46,21 @@ AB_BASE=os.path.dirname(os.path.abspath(sys.argv[0]))
 ################################################################################
 if os.path.isfile(os.path.join(AB_BASE, ".setupdone")):
     
-    ab_config = ConfigParser.ConfigParser()
-
+    from ConfigParser import SafeConfigParser
+ 
+    parser = SafeConfigParser()
+    parser.read('conf/autobuilder.conf')
+    print
     print "Reading " + os.path.join(AB_BASE, "conf/autobuilder.conf")
-    ab_config.read(os.path.join(AB_BASE, "conf/autobuilder.conf"))
+    print 
 
-    print "Setting BUILD_OUTPUT_DIR to " + ab_config.get('PublishArtifacts', 'BUILD_OUTPUT_DIR')
-    os.environ["BUILD_OUTPUT_DIR"] = ab_config.get('PublishArtifacts', 'BUILD_OUTPUT_DIR')
+    for section_name in parser.sections():
+        for name, value in parser.items(section_name):
+            print '%s = os.environ.get("%s")' % (name.upper(), name.upper())
+            #print ' Setting %s to %s' % (name.upper(), value)
+            os.environ[name.upper()] = value
+            
+    print
 
     if sys.argv[1] == "master" or sys.argv[1] == "both":
 
