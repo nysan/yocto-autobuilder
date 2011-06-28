@@ -35,7 +35,7 @@ echo " In the future though please add the following to your shell environment: 
 echo " PYTHONPATH=${PWD}/lib/python2.6/site-packages/:"'$PYTHONPATH'
 echo " PATH=${PWD}/bin:"'$PATH'
 echo ""
-echo " If you don't, you should source this script everytime you want start the 
+echo " If you don't, you should source this script everytime you want start the "
 echo " autobuilder."
 
 ##########################
