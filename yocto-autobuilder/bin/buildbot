@@ -1,5 +1,0 @@
-#!/usr/bin/python
-# EASY-INSTALL-SCRIPT: 'buildbot==0.8.4p1','buildbot'
-__requires__ = 'buildbot==0.8.4p1'
-import pkg_resources
-pkg_resources.run_script('buildbot==0.8.4p1', 'buildbot')
