@@ -92,7 +92,7 @@ echo " To start the autobuilder:"
 echo " ./yocto-start-autobuilder <slave|master|both>"
 echo ""
 echo " To stop the autobuilder:"
-echo " ./yocto-start-autobuilder <slave|master|both>"
+echo " ./yocto-stop-autobuilder <slave|master|both>"
 echo ""
 
 ################

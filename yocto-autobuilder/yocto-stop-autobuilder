@@ -31,7 +31,7 @@ Stop a yocto buildbot autobuilder instance.
 parser = optparse.OptionParser(usage=usage)
 options, args = parser.parse_args( sys.argv )
 
-if len(args) != 2:
+if len(args) != 2 or (sys.argv[1] != "both" and sys.argv[1] != "master" and sys.argv[1] != "slave") :
     parser.error("""
     You must specify if you wish to stop master, slave or both. 
    
