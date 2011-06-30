@@ -55,6 +55,7 @@ yocto_builders = []
 defaultenv = {}
 
 SOURCE_DL_DIR = os.environ.get("SOURCE_DL_DIR")
+defaultenv['DL_DIR'] = SOURCE_DL_DIR
 CLEAN_SOURCE_DIR = os.environ.get("CLEAN_SOURCE_DIR")
 PUBLISH_BUILDS = os.environ.get("PUBLISH_BUILDS")
 PUBLISH_SOURCE_MIRROR = os.environ.get("PUBLISH_SOURCE_MIRROR")
@@ -63,6 +64,41 @@ BUILD_PUBLISH_DIR = os.environ.get("BUILD_PUBLISH_DIR")
 SSTATE_PUBLISH_DIR = os.environ.get("SSTATE_PUBLISH_DIR")
 SOURCE_PUBLISH_DIR = os.environ.get("SOURCE_PUBLISH_DIR")
 
+def createAutoConf(factory, machine, image):
+    AUTOCONF="./conf/auto.conf"
+    if os.path.exists(AUTOCONF) == False:
+        fout = open(AUTOCONF, "wb")        
+        fout.write('PACKAGE_CLASSES = "package_rpm package_deb package_ipk"') 
+        fout.write('BB_NUMBER_THREADS = "10"')
+        fout.write('PARALLEL_MAKE = "-j 16"')
+        fout.write('SDKMACHINE ?= "i586"')
+        fout.write('DL_DIR = ' + defaultenv['DL_DIR'])
+        fout.write('INHERIT += "rm_work"')
+        fout.write('MACHINE = ' + machine)
+        fout.write('MIRRORS = ""')
+        fout.write('PREMIRRORS = ""')
+        if SWABBER = True:
+            fout.write('USER_CLASSES += "image-prelink image-swab"')
+        if PUBLISH_BUILDS == True:
+            fout.write('BB_GENERATE_MIRROR_TARBALLS = "1"')
+        fout.close()
+
+def createBBLayersConf(factory,machine,image):
+    BBLAYERSCONF="./conf/bblayers.conf"
+    if os.path.exists(BBLAYERSCONF) == False:
+        fout = open(BBLAYERSCONF, "wb")        
+        fout.write('LCONF_VERSION = "3"')
+        fout.write('BBFILES ?=""')
+        fout.write('BBLAYERS = " \ ')
+        fout.write('./meta \ ')
+        fout.write('./meta-yocto \ ')
+        fout.write('/yocto/meta-intel/meta-$MACHINE/ \ ')
+        #for layer in layers:
+        #
+            
+        fout.write('"')
+        fout.close()
+        
 # Common command 'macros'
 def runImage(factory, machine, image):
     defaultenv['MACHINE'] = machine
@@ -102,6 +138,7 @@ def runPreamble(factory):
 
 def getRepo(step):
     gittype = step.getProperty("repository")
+    defaultenv['REVISION'] = step.getProperty('rev')
     if gittype == "git://git.yoctoproject.org/poky-contrib":
         step.setProperty("branch", "stage/master_under_test")
     elif gittype == "git://git.yoctoproject.org/poky":
@@ -120,15 +157,16 @@ def makeCheckout(factory):
                     command=["echo", WithProperties("%s", "branch"),  
                              WithProperties("%s", "repository")]))
     factory.addStep(Git(timeout=10000, retry=(5, 3)))
-    factory.addStep(ShellCommand, command=["git", "checkout",  
-                    WithProperties("%s", "revision")], timeout=1000)
+    if defaultenv['REVISION'] != "HEAD":
+        factory.addStep(ShellCommand, command=["git", "checkout",  
+                        defaultenv['REVISION']], timeout=1000)
 
 
 def makeTarball(factory):
     factory.addStep(ShellCommand, description="Generating release tarball", 
                     command=["yocto-autobuild-generate-sources-tarball", "nightly", "1.0pre", 
-                    WithProperties("%s", "BRANCHNAME")], timeout=120)
-    if PUBLISH_BUILDS:
+                    WithProperties("%s", "branch")], timeout=120)
+    if PUBLISH_BUILDS == True:
         factory.addStep(ShellCommand, description="Copying release tarball", 
                         command=["yocto-autobuild-copy-images-2.0", "yocto-sources", 
                         "nightly",    BUILD_PUBLISH_DIR], 
@@ -137,12 +175,11 @@ def makeTarball(factory):
 def makeLayerTarball(factory):
     factory.addStep(ShellCommand, description="Generating release tarball",
                     command=["yocto-autobuild-generate-sources-tarball", "nightly", "1.0pre",
-                    WithProperties("%s", "bspbranch")], timeout=120)
-    if PUBLISH_BUILDS:
+                    WithProperties("%s", "layer0branch")], timeout=120)
+    if PUBLISH_BUILDS == True:
         factory.addStep(ShellCommand, description="Copying release tarball",
                         command=["yocto-autobuild-copy-images-2.0", "yocto-sources", "nightly", 
-                        WithProperties(   BUILD_PUBLISH_DIR + 
-                        str(defaultenv['ABTARGET']) + "%(BRANCHDEST)s")], timeout=60)
+                        BUILD_PUBLISH_DIR + str(defaultenv['ABTARGET'])], timeout=60)
 
 def doEMGDTest(step):
     buildername = step.getProperty("buildername")
@@ -196,17 +233,6 @@ def fuzzyBuild(factory):
                     env=copy.copy(defaultenv),
                     timeout=14400)
 
-def setBranchName(step):
-    branch = step.getProperty("branch")
-    if branch == None:
-        step.setProperty("BRANCHNAME", "stage/master_under_test")  
-        step.setProperty("BRANCHDEST", "")
-        step.setProperty("REALBRANCH", "stage/master_under_test")
-    else:
-        step.setProperty("BRANCHNAME", str(branch))
-        step.setProperty("BRANCHDEST", '-' + str(branch))
-        step.setProperty("REALBRANCH", str(branch))
-    return True
                     
 # meta-target command macros
 def getMetaParams(step):
@@ -260,29 +286,10 @@ def nightlyBSP(factory, machine, distrotype):
                     timeout=600)
                     
 def setBSPLayerRepo(step):
-    if step.getProperty("bsprepo") == " ":
-        defaultenv['BSP_REPO'] = "git://git.pokylinux.org/meta-intel.git"
-        step.setProperty("bsprepo", defaultenv['BSP_REPO'])
-    else:
-        defaultenv['BSP_REPO'] = step.getProperty("bsprepo")
-
-    if step.getProperty("bspbranch") == " ":
-        defaultenv['BSP_BRANCH'] = "master"
-        step.setProperty("bspbranch", defaultenv['BSP_BRANCH'])
-    else:
-        defaultenv['BSP_BRANCH'] = step.getProperty("bspbranch")
-
-    if step.getProperty("bspworkdir") == " ":
-        defaultenv['BSP_WORKDIR'] = "build/yocto/meta-intel"
-        step.setProperty("bspworkdir", defaultenv['BSP_WORKDIR'])
-    else:
-        defaultenv['BSP_WORKDIR'] = "build/" + step.getProperty("bspworkdir")
-        
-    if step.getProperty("bsprevision") == " ":
-        defaultenv['BSP_REV'] = "HEAD"
-        step.setProperty("bsprevision", defaultenv['BSP_REV'])
-    else:
-        defaultenv['BSP_REV'] = step.getProperty("bsprevision")
+    defaultenv['BSP_REPO'] = step.getProperty("layer0repo")
+    defaultenv['BSP_BRANCH'] = step.getProperty("layer0branch")
+    defaultenv['BSP_WORKDIR'] = "build/" + step.getProperty("layer0workdir")
+    defaultenv['BSP_REV'] = step.getProperty("layer0revision")
     return True
 
 # abstracted BSP buildsets
@@ -291,9 +298,6 @@ def runBSPLayerPreamble(factory):
                     description="Setting the BSP layer repo properties", 
                     command='echo "Setting the BSP layer repo properties"'))
     makeCheckout(factory)
-    factory.addStep(shell.SetProperty(workdir="build", 
-                    command="git rev-parse HEAD", 
-                    property="POKYHASH"))
     factory.addStep(ShellCommand, 
                     command="echo 'Checking out git://git.pokylinux.org/meta-intel.git'",
                     timeout=10)
@@ -301,29 +305,21 @@ def runBSPLayerPreamble(factory):
                     mode="clobber", workdir=defaultenv['BSP_WORKDIR'],
                     branch=defaultenv['BSP_BRANCH'],
                     timeout=10000, retry=(5, 3)))
-    factory.addStep(ShellCommand(command=["git", "checkout",  defaultenv['BSP_REV']], timeout=1000))
+    if defaultenv['BSP_REV'] != "HEAD":                
+        factory.addStep(ShellCommand(command=["git", "checkout",  defaultenv['BSP_REV']], timeout=1000))
     factory.addStep(ShellCommand(doStepIf=doEMGDTest, 
                     description="Copying EMGD", 
                     workdir="build", 
                     command="cp -R ~/EMGD_1.6/* yocto/meta-intel/meta-crownbay/recipes-graphics/xorg-xserver/",
                     timeout=60))
-    if PUBLISH_BUILDS:
-        factory.addStep(ShellCommand, description="Making output directory", 
-                        command=["/bin/mkdir", "-p", 
-                        WithProperties(   BUILD_PUBLISH_DIR + 
-                        str(defaultenv['ABTARGET']) + "%(BRANCHDEST)s/nightly")], 
-                        timeout=60)
-    factory.addStep(ShellCommand, description="Run preamble", 
-                    command=["yocto-autobuild-preamble", 
-                    WithProperties(   BUILD_PUBLISH_DIR + 
-                    str(defaultenv['ABTARGET']) + "%(BRANCHDEST)s/nightly")], timeout=60)
+    if PUBLISH_BUILDS == True:
+        runPreamble(f22)
 
 def runBSPLayerPostamble(factory):
-    if PUBLISH_BUILDS:
+    if PUBLISH_BUILDS == True:
         factory.addStep(ShellCommand, description="Creating CURRENT link", 
                         command=["yocto-autobuild-generate-current-link", "nightly", 
-                        WithProperties(   BUILD_PUBLISH_DIR + 
-                        str(defaultenv['ABTARGET']) + "%(BRANCHDEST)s"), "current"], 
+                        BUILD_PUBLISH_DIR + str(defaultenv['ABTARGET']), "current"], 
                         timeout=20)
 
 def buildBSPLayer(factory, distrotype):
@@ -331,38 +327,32 @@ def buildBSPLayer(factory, distrotype):
         defaultenv['DISTRO'] = 'poky'
         runImageLayers(factory, str(defaultenv['BTARGET']), 
                        'core-image-sato-live core-image-sato-sdk-live core-image-minimal-live')
-        if PUBLISH_BUILDS:
+        if PUBLISH_BUILDS == True:
             factory.addStep(ShellCommand, description="Copying " + 
                             str(defaultenv['ABTARGET']) + " build output", 
                             command=["yocto-autobuild-copy-images-2.0", 
                             defaultenv['BTARGET'], "nightly", 
-                            WithProperties(   BUILD_PUBLISH_DIR + 
-                            str(defaultenv['ABTARGET']) + "%(BRANCHDEST)s")]) 
+                            BUILD_PUBLISH_DIR + str(defaultenv['ABTARGET'])]) 
             makeLayerTarball(factory)
             factory.addStep(ShellCommand, description="Copying RPM feed output", 
                             command=["yocto-autobuild-copy-images-2.0", "rpm", "nightly", 
-                            WithProperties(   BUILD_PUBLISH_DIR + 
-                            str(defaultenv['ABTARGET']) + "%(BRANCHDEST)s")])
+                            BUILD_PUBLISH_DIR + str(defaultenv['ABTARGET'])]) 
             factory.addStep(ShellCommand, description="Copying IPK feed output",
                             command=["yocto-autobuild-copy-images-2.0", "ipk", "nightly",
-                            WithProperties(   BUILD_PUBLISH_DIR +
-                            str(defaultenv['ABTARGET']) + "%(BRANCHDEST)s")])
+                            BUILD_PUBLISH_DIR + str(defaultenv['ABTARGET'])]) 
     elif distrotype == "poky-lsb":
         defaultenv['DISTRO'] = 'poky-lsb'
         runImageLayers(factory, str(defaultenv['BTARGET']), 'core-image-lsb-live core-image-lsb-sdk-live')
-        if PUBLISH_BUILDS:
+        if PUBLISH_BUILDS == True:
             factory.addStep(ShellCommand, description="Copying " + str(defaultenv['ABTARGET']) + " build output", 
                             command=["yocto-autobuild-copy-images-2.0", defaultenv['BTARGET'], "nightly", 
-                            WithProperties(   BUILD_PUBLISH_DIR + 
-                            str(defaultenv['ABTARGET']) + "%(BRANCHDEST)s")]) 
+                            BUILD_PUBLISH_DIR + str(defaultenv['ABTARGET'])]) 
             factory.addStep(ShellCommand, description="Copying RPM feed output", 
                             command=["yocto-autobuild-copy-images-2.0", "rpm-lsb", "nightly", 
-                            WithProperties(   BUILD_PUBLISH_DIR + 
-                            str(defaultenv['ABTARGET']) + "%(BRANCHDEST)s")], timeout=1800)
+                            BUILD_PUBLISH_DIR + str(defaultenv['ABTARGET'])]) 
             factory.addStep(ShellCommand, description="Copying IPK feed output",
                             command=["yocto-autobuild-copy-images-2.0", "ipk-lsb", "nightly",
-                            WithProperties(   BUILD_PUBLISH_DIR +
-                            str(defaultenv['ABTARGET']) + "%(BRANCHDEST)s")], timeout=1800)
+                            BUILD_PUBLISH_DIR + str(defaultenv['ABTARGET'])]) 
 
 
 ################################################################################
@@ -374,7 +364,7 @@ def buildBSPLayer(factory, distrotype):
 f2 = factory.BuildFactory()
 fuzzsched = Triggerable(name="fuzzy-master",
         builderNames=["b2"])
-
+defaultenv['REVISION'] = "HEAD"
 defaultenv['ABTARGET'] = 'fuzzy-master'
 makeCheckout(f2)
 fuzzyBuild(f2)
@@ -397,7 +387,7 @@ yocto_sched.append(triggerable.Triggerable(name="fuzzymastersched", builderNames
 f3 = factory.BuildFactory()
 fuzzsched = Triggerable(name="fuzzy-mut",
         builderNames=["b3"])
-
+defaultenv['REVISION'] = "HEAD"
 defaultenv['ABTARGET'] = 'fuzzy-mut'
 makeCheckout(f3)
 fuzzyBuild(f3)
@@ -418,6 +408,7 @@ yocto_sched.append(triggerable.Triggerable(name="fuzzymutsched", builderNames=["
 #
 ################################################################################
 f4 = factory.BuildFactory()
+defaultenv['REVISION'] = "HEAD"
 defaultenv['ABTARGET'] = 'meta-target'
 makeCheckout(f4)
 metaBuild(f4)
@@ -438,6 +429,7 @@ yocto_builders.append(b4)
 
 f22 = factory.BuildFactory()
 makeCheckout(f22)
+defaultenv['REVISION'] = "HEAD"
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'core-swabber-test'
 f22.addStep(ShellCommand, description=["Setting", "SDKMACHINE=i686"], 
@@ -446,7 +438,7 @@ defaultenv['SDKMACHINE'] = 'i686'
 f22.addStep(ShellCommand, description=["Setting", "ENABLE_SWABBER"], 
             command="echo 'Setting ENABLE_SWABBER'", timeout=10)
 defaultenv['ENABLE_SWABBER'] = 'true'
-if PUBLISH_BUILDS:
+if PUBLISH_BUILDS == True:
     runPreamble(f22)
 defaultenv['SDKMACHINE'] = 'i686'
 runImage(f22, 'qemux86-64', 'meta-toolchain-gmae')
@@ -454,7 +446,7 @@ f22.addStep(ShellCommand, description="Setting SDKMACHINE=x86_64",
             command="echo 'Setting SDKMACHINE=x86_64'", timeout=10)
 defaultenv['SDKMACHINE'] = 'x86_64'
 runImage(f22, 'qemux86-64', 'meta-toolchain-gmae')
-if PUBLISH_BUILDS:
+if PUBLISH_BUILDS == True:
     swabberTimeStamp = strftime("%Y%m%d%H%M%S")
     swabberTarPath = BUILD_PUBLISH_DIR + "/swabber-logs/" + swabberTimeStamp + ".tar.bz2"
     f22.addStep(ShellCommand, description=["Compressing", "Swabber Logs"], 
@@ -511,10 +503,9 @@ defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'nightly-external'
 defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['SSTATE_DIR'] =    BUILD_PUBLISH_DIR + '/sstate-cache'
-f65.addStep(ShellCommand(doStepIf=setBranchName, description="Setting Branch Names", 
-            command='echo "Setting Branch Name"'))
+defaultenv['REVISION'] = "HEAD"
 makeCheckout(f65)
-if PUBLISH_BUILDS:
+if PUBLISH_BUILDS == True:
     runPreamble(f65)
 nightlyQEMU(f65, 'qemux86', 'poky')
 nightlyQEMU(f65, 'qemuarm', 'poky')
@@ -532,7 +523,7 @@ nightlyBSP(f65, 'mpc8315e-rdb', "poky-lsb")
 nightlyBSP(f65, 'routerstationpro', "poky-lsb")
 runImage(f65, 'qemux86', 'package-index')
 makeTarball(f65)
-if PUBLISH_BUILDS:
+if PUBLISH_BUILDS == True:
     f65.addStep(ShellCommand, description="Copying IPK feed output", 
                 command="yocto-autobuild-copy-images-2.0 ipk nightly " +    BUILD_PUBLISH_DIR, 
                 timeout=1800)
@@ -546,7 +537,7 @@ f65.addStep(ShellCommand, description="Copying eclipse build tools",
             command="yocto-eclipse-plugin-copy-buildtools combo", timeout=120)
 f65.addStep(ShellCommand, description="Building eclipse plugin", 
             command="yocto-eclipse-plugin-build combo master", timeout=120)
-if PUBLISH_BUILDS:
+if PUBLISH_BUILDS == True:
     f65.addStep(ShellCommand, description="Copying eclipse plugin output", 
                 command="yocto-autobuild-copy-images-2.0 eclipse-plugin nightly " +    BUILD_PUBLISH_DIR, 
                 timeout=60)
@@ -584,10 +575,9 @@ defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'nightly-external-toolchain'
 defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['SSTATE_DIR'] =    BUILD_PUBLISH_DIR + '/sstate-cache'
-f66.addStep(ShellCommand(doStepIf=setBranchName, description="Setting Branch Names",
-            command='echo "Setting Branch Name"'))
+defaultenv['REVISION'] = "HEAD"
 makeCheckout(f66)
-if PUBLISH_BUILDS:
+if PUBLISH_BUILDS == True:
     runPreamble(f66)
 f66.addStep(ShellCommand, description="Setting SDKMACHINE=i686", 
             command="echo 'Setting SDKMACHINE=i686'", timeout=10)
@@ -602,7 +592,7 @@ runImage(f66, 'qemuarm', 'meta-toolchain-gmae')
 runImage(f66, 'qemumips', 'meta-toolchain-gmae')
 runImage(f66, 'qemuppc', 'meta-toolchain-gmae')
 runImage(f66, 'qemux86', 'package-index')
-if PUBLISH_BUILDS:
+if PUBLISH_BUILDS == True:
     f66.addStep(ShellCommand, description="Copying toolchain-x86-64 build output", 
                 command="yocto-autobuild-copy-images-2.0 toolchain nightly " +    BUILD_PUBLISH_DIR , 
                 timeout=600)
@@ -635,11 +625,10 @@ f70 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'nightly-internal'
 defaultenv['ENABLE_SWABBER'] = 'false'
-defaultenv['SSTATE_DIR'] =    BUILD_PUBLISH_DIR + '/sstate-cache'
-f70.addStep(ShellCommand(doStepIf=setBranchName, description="Setting Branch Names", 
-            command='echo "Setting Branch Name"'))
+defaultenv['SSTATE_DIR'] = BUILD_PUBLISH_DIR + '/sstate-cache'
+defaultenv['REVISION'] = "HEAD"
 makeCheckout(f70)
-if PUBLISH_BUILDS:
+if PUBLISH_BUILDS == True:
     runPreamble(f70)
 nightlyQEMU(f70, 'qemux86', 'poky')
 nightlyQEMU(f70, 'qemux86-64', 'poky')
@@ -650,7 +639,7 @@ nightlyBSP(f70, 'atom-pc', 'poky-lsb')
 runImage(f70, 'qemux86', 'package-index')
 makeTarball(f70)
 
-if PUBLISH_BUILDS:
+if PUBLISH_BUILDS == True:
     f70.addStep(ShellCommand, description="Copying toolchain-x86-64 build output", 
                 command="yocto-autobuild-copy-images-2.0 toolchain nightly " +    BUILD_PUBLISH_DIR , 
                 timeout=600)
@@ -669,7 +658,7 @@ if PUBLISH_SSTATE:
     f70.addStep(ShellCommand, description="Copying shared state cache", 
                 command="yocto-autobuild-copy-images-2.0 sstate nightly " +    BUILD_PUBLISH_DIR , 
                 timeout=8400)
-if PUBLISH_BUILDS:
+if PUBLISH_BUILDS == True:
     f70.addStep(ShellCommand, description="Creating CURRENT link", 
                 command="yocto-autobuild-generate-current-link nightly " +    BUILD_PUBLISH_DIR + "/ current", 
                 timeout=20)
@@ -693,6 +682,7 @@ defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'crownbay'
 defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['SSTATE_DIR'] =    BUILD_PUBLISH_DIR + '/sstate-cache'
+defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'crownbay'
 defaultenv['BSP_REPO'] = "git://git.pokylinux.org/meta-intel.git"
 defaultenv['BSP_BRANCH'] = "master"
@@ -719,6 +709,7 @@ defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'crownbay-noemgd'
 defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['SSTATE_DIR'] =    BUILD_PUBLISH_DIR + '/sstate-cache'
+defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'crownbay'
 defaultenv['BSP_REPO'] = "git://git.pokylinux.org/meta-intel.git"
 defaultenv['BSP_BRANCH'] = "master"
@@ -746,6 +737,7 @@ defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'emenlow'
 defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['SSTATE_DIR'] =    BUILD_PUBLISH_DIR + '/sstate-cache'
+defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'emenlow'
 defaultenv['BSP_REPO'] = "git://git.pokylinux.org/meta-intel.git"
 defaultenv['BSP_BRANCH'] = "master"
@@ -773,6 +765,7 @@ defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'n450'
 defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['SSTATE_DIR'] =    BUILD_PUBLISH_DIR + '/sstate-cache'
+defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'n450'
 defaultenv['BSP_REPO'] = "git://git.pokylinux.org/meta-intel.git"
 defaultenv['BSP_BRANCH'] = "master"
@@ -799,6 +792,7 @@ defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'jasperforest'
 defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['SSTATE_DIR'] =    BUILD_PUBLISH_DIR + '/sstate-cache'
+defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'jasperforest'
 defaultenv['BSP_REPO'] = "git://git.pokylinux.org/meta-intel.git"
 defaultenv['BSP_BRANCH'] = "master"
@@ -823,6 +817,7 @@ defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'sugarbay'
 defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['SSTATE_DIR'] =    BUILD_PUBLISH_DIR + '/sstate-cache'
+defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'sugarbay'
 defaultenv['BSP_REPO'] = "git://git.pokylinux.org/meta-intel.git"
 defaultenv['BSP_BRANCH'] = "master"

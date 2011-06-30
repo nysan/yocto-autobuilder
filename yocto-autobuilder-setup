@@ -18,7 +18,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 export PYTHONPATH=`pwd`/lib/python2.6/site-packages/:$PYTHONPATH
-export PATH=`pwd`/bin:$PATH
+export PATH=`pwd`/bin:`pwd`/yocto-autobuilder/scripts:$PATH
 config_check=`cat ${PWD}/yocto-master/master.cfg|grep "'<USER>', '<PASS>'"`
 
 #########################################
@@ -33,7 +33,7 @@ echo "#########################################################################"
 echo " Setting envvars. "
 echo " In the future though please add the following to your shell environment: "
 echo " PYTHONPATH=${PWD}/lib/python2.6/site-packages/:"'$PYTHONPATH'
-echo " PATH=${PWD}/bin:"'$PATH'
+echo " PATH=${PWD}/bin:${PWD}/yocto-autobuilder/scripts:"'$PATH'
 echo ""
 echo " If you don't, you should source this script everytime you want start the "
 echo " autobuilder."

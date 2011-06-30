@@ -56,8 +56,7 @@ if os.path.isfile(os.path.join(AB_BASE, ".setupdone")):
 
     for section_name in parser.sections():
         for name, value in parser.items(section_name):
-            print '%s = os.environ.get("%s")' % (name.upper(), name.upper())
-            #print ' Setting %s to %s' % (name.upper(), value)
+            print ' Setting %s to %s' % (name.upper(), value)
             os.environ[name.upper()] = value
             
     print
