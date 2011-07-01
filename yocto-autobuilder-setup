@@ -28,7 +28,7 @@ config_check=`cat ${PWD}/yocto-master/master.cfg|grep "'<USER>', '<PASS>'"`
 # this to their env
 #
 #########################################
-
+)
 echo "#########################################################################"
 echo " Setting envvars. "
 echo " In the future though please add the following to your shell environment: "
@@ -90,6 +90,7 @@ echo " README files "
 echo ""
 echo "#########################################################################"
 echo ""
+buildbot upgrade-master ${PWD}/yocto-master
 echo " To start the autobuilder:"
 echo " ./yocto-start-autobuilder <slave|master|both>"
 echo ""

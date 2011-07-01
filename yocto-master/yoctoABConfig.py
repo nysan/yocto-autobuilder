@@ -26,23 +26,23 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-import copy 
-import random 
-import datetime 
-import os
-from buildbot.process import factory
-from buildbot.steps.trigger import Trigger
-from buildbot.schedulers import triggerable
-from buildbot.steps.source import Git
-from buildbot.process.properties import WithProperties
-from buildbot.steps import shell
-from buildbot.steps.shell import ShellCommand
+import copy, random, os, datetime 
 from time import strftime
+from email.Utils import formatdate
+from twisted.python import log
+from buildbot.changes.pb import PBChangeSource
+from buildbot.process import factory
+from buildbot.process.properties import WithProperties
+from buildbot.process.buildstep import BuildStep, LoggingBuildStep, LoggedRemoteCommand, RemoteShellCommand
 from buildbot.scheduler import Triggerable
 from buildbot.scheduler import Scheduler
 from buildbot.scheduler import Periodic
 from buildbot.scheduler import Nightly
-from buildbot.changes.pb import PBChangeSource
+from buildbot.schedulers import triggerable
+from buildbot.status.results import SUCCESS, FAILURE
+from buildbot.steps.trigger import Trigger
+from buildbot.steps.shell import ShellCommand
+from buildbot.steps.source import Git
 
 yocto_projname = "Yocto"
 yocto_projurl = "http://yoctoproject.org/"
@@ -63,42 +63,146 @@ PUBLISH_SSTATE = os.environ.get("PUBLISH_SSTATE")
 BUILD_PUBLISH_DIR = os.environ.get("BUILD_PUBLISH_DIR")
 SSTATE_PUBLISH_DIR = os.environ.get("SSTATE_PUBLISH_DIR")
 SOURCE_PUBLISH_DIR = os.environ.get("SOURCE_PUBLISH_DIR")
+defaultenv['STEPSEMIFORE'] = True
 
-def createAutoConf(factory, machine, image):
-    AUTOCONF="./conf/auto.conf"
-    if os.path.exists(AUTOCONF) == False:
-        fout = open(AUTOCONF, "wb")        
-        fout.write('PACKAGE_CLASSES = "package_rpm package_deb package_ipk"') 
-        fout.write('BB_NUMBER_THREADS = "10"')
-        fout.write('PARALLEL_MAKE = "-j 16"')
-        fout.write('SDKMACHINE ?= "i586"')
-        fout.write('DL_DIR = ' + defaultenv['DL_DIR'])
-        fout.write('INHERIT += "rm_work"')
-        fout.write('MACHINE = ' + machine)
-        fout.write('MIRRORS = ""')
-        fout.write('PREMIRRORS = ""')
-        if SWABBER = True:
-            fout.write('USER_CLASSES += "image-prelink image-swab"')
-        if PUBLISH_BUILDS == True:
-            fout.write('BB_GENERATE_MIRROR_TARBALLS = "1"')
-        fout.close()
+class createBBLayersConf(LoggingBuildStep):
+    renderables = [ 'workdir' ]
 
-def createBBLayersConf(factory,machine,image):
-    BBLAYERSCONF="./conf/bblayers.conf"
-    if os.path.exists(BBLAYERSCONF) == False:
+    def __init__(self, workdir=None, **kwargs):
+        LoggingBuildStep.__init__(self, **kwargs)
+        self.addFactoryArguments(workdir=workdir)
+        # This will get added to args later, after properties are rendered
+        self.workdir = workdir
+        self.description = ["Setting", "bblayers.conf"]
+
+    def describe(self, done=False):
+        return self.description
+
+    def setStepStatus(self, step_status):
+        LoggingBuildStep.setStepStatus(self, step_status)
+
+    def setDefaultWorkdir(self, workdir):
+        self.workdir = self.workdir or workdir
+
+    def start(self):
+        properties = self.build.getProperties().asDict()
+        BBLAYERSCONF = os.path.join(self.workdir, 
+                                    "bblayers.conf") 
+        log.msg(BBLAYERSCONF)
+        log.msg(properties)
+        layerid=0
+        try:
+            os.remove(BBLAYERSCONF)        
+        except:
+            pass        
+
         fout = open(BBLAYERSCONF, "wb")        
-        fout.write('LCONF_VERSION = "3"')
-        fout.write('BBFILES ?=""')
-        fout.write('BBLAYERS = " \ ')
-        fout.write('./meta \ ')
-        fout.write('./meta-yocto \ ')
-        fout.write('/yocto/meta-intel/meta-$MACHINE/ \ ')
-        #for layer in layers:
-        #
-            
+        fout.write('LCONF_VERSION = "4"\n')
+        fout.write('BBFILES ?=""\n')
+        fout.write('BBLAYERS = " \ \n')
+        fout.write('./meta \ \n')
+        fout.write('./meta-yocto \ \n')
+        fout.write('/yocto/meta-intel/meta-' + defaultenv['BTARGET'] + ' \ \n')
+        while True:
+            if 'layer'+str(layerid)+'workdir' in properties:
+                fout.write(self.build.getProperty('layer'+str(layerid)+'workdir') +' \ \n')
+                layerid = layerid + 1
+            else:
+                break
         fout.write('"')
         fout.close()
+        self.finished(SUCCESS)
+
+
+class createAutoConf(LoggingBuildStep):
+    renderables = [ 'workdir' ]
+
+    def __init__(self, workdir=None, **kwargs):
+        LoggingBuildStep.__init__(self, **kwargs)
+        self.addFactoryArguments(workdir=workdir)
+        # This will get added to args later, after properties are rendered
+        self.workdir = workdir
+        self.description = ["Setting", "auto.conf"]
+
+    def describe(self, done=False):
+        return self.description
+
+    def setStepStatus(self, step_status):
+        LoggingBuildStep.setStepStatus(self, step_status)
+
+    def setDefaultWorkdir(self, workdir):
+        self.workdir = self.workdir or workdir
+
+    def start(self):
+        AUTOCONF = os.path.join(self.workdir, 
+                                    "auto.conf") 
+        log.msg(AUTOCONF)
+        try:
+            os.remove(AUTOCONF)        
+        except:
+            pass
         
+        try:        
+            fout = open(AUTOCONF, "wb")        
+            fout.write('PACKAGE_CLASSES = "package_rpm package_deb package_ipk"\n') 
+            fout.write('BB_NUMBER_THREADS = "10"\n')
+            fout.write('PARALLEL_MAKE = "-j 16"\n')
+            fout.write('SDKMACHINE ?= "i586"\n')
+            fout.write('DL_DIR = ' + defaultenv['DL_DIR']+"\n")
+            fout.write('INHERIT += "rm_work"\n')
+            fout.write('MACHINE = ' + defaultenv['BTARGET'] + "\n")
+            fout.write('MIRRORS = ""\n')
+            fout.write('PREMIRRORS = ""\n')
+            if defaultenv['ENABLE_SWABBER'] == 'true':
+                fout.write('USER_CLASSES += "image-prelink image-swab"\n')
+            if PUBLISH_BUILDS == True:
+                fout.write('BB_GENERATE_MIRROR_TARBALLS = "1"\n')
+            fout.close()
+        except:
+            self.finished(FAILURE)
+        self.finished(SUCCESS)
+
+def checkForLayer(step):
+        if step.getProperty('layer'+str(layerid)+'workdir'):
+            defaultenv['BSP_REPO'] = factory.getProperty('layer'+str(layerid)+'repo')
+            defaultenv['BSP_BRANCH'] = factory.getProperty('layer'+str(layerid)+'branch')
+            defaultenv['BSP_WORKDIR'] = factory.getProperty('layer'+str(layerid)+'workdir')
+            defaultenv['BSP_REV'] = factory.getProperty('layer'+str(layerid)+'revision')
+            return True
+        else:
+            defaultenv['STEPSEMIFORE'] = False
+            return False
+
+# abstracted BSP buildsets
+def runBSPLayerPreamble(factory):
+    makeCheckout(factory)
+    factory.addStep(ShellCommand, description="Setting up build env", 
+                    workdir="build",
+                    command=". ./oe-init-build-env", 
+                    timeout=60)
+    factory.addStep(createBBLayersConf(WithProperties("%s/build/build/conf", "workdir")))
+    factory.addStep (Git (doStepIf=checkForLayer, mode="clobber", 
+                             workdir = defaultenv['BSP_WORKDIR'],
+                             repourl =  defaultenv['BSP_REPO'],
+                             branch = defaultenv['BSP_BRANCH'],
+                             timeout=10000, retry=(5, 3)))
+    factory.addStep(createAutoConf(WithProperties("%s/build/build/conf", "workdir")))
+    factory.addStep(ShellCommand, 
+                    command="echo 'Checking out git://git.pokylinux.org/meta-intel.git'",
+                    timeout=10)
+    factory.addStep(Git(repourl=defaultenv['BSP_REPO'], 
+                    mode="clobber", workdir=defaultenv['BSP_WORKDIR'],
+                    branch=defaultenv['BSP_BRANCH'],
+                    timeout=10000, retry=(5, 3)))
+    if defaultenv['BSP_REV'] != "HEAD":                
+        factory.addStep(ShellCommand(command=["git", "checkout",  defaultenv['BSP_REV']], timeout=1000))
+    factory.addStep(ShellCommand(doStepIf=doEMGDTest, 
+                    description="Copying EMGD", 
+                    workdir="build", 
+                    command="cp -R ~/EMGD_1.6/* yocto/meta-intel/meta-crownbay/recipes-graphics/xorg-xserver/",
+                    timeout=60))
+
+    
 # Common command 'macros'
 def runImage(factory, machine, image):
     defaultenv['MACHINE'] = machine
@@ -156,7 +260,9 @@ def makeCheckout(factory):
                                  WithProperties("%s", "repository")],
                     command=["echo", WithProperties("%s", "branch"),  
                              WithProperties("%s", "repository")]))
-    factory.addStep(Git(timeout=10000, retry=(5, 3)))
+    factory.addStep(Git(
+                        #mode="clobber", 
+                        timeout=10000, retry=(5, 3)))
     if defaultenv['REVISION'] != "HEAD":
         factory.addStep(ShellCommand, command=["git", "checkout",  
                         defaultenv['REVISION']], timeout=1000)
@@ -292,28 +398,11 @@ def setBSPLayerRepo(step):
     defaultenv['BSP_REV'] = step.getProperty("layer0revision")
     return True
 
-# abstracted BSP buildsets
-def runBSPLayerPreamble(factory):
-    factory.addStep(ShellCommand(doStepIf=setBSPLayerRepo, 
-                    description="Setting the BSP layer repo properties", 
-                    command='echo "Setting the BSP layer repo properties"'))
-    makeCheckout(factory)
-    factory.addStep(ShellCommand, 
-                    command="echo 'Checking out git://git.pokylinux.org/meta-intel.git'",
-                    timeout=10)
-    factory.addStep(Git(repourl=defaultenv['BSP_REPO'], 
-                    mode="clobber", workdir=defaultenv['BSP_WORKDIR'],
-                    branch=defaultenv['BSP_BRANCH'],
-                    timeout=10000, retry=(5, 3)))
-    if defaultenv['BSP_REV'] != "HEAD":                
-        factory.addStep(ShellCommand(command=["git", "checkout",  defaultenv['BSP_REV']], timeout=1000))
-    factory.addStep(ShellCommand(doStepIf=doEMGDTest, 
-                    description="Copying EMGD", 
-                    workdir="build", 
-                    command="cp -R ~/EMGD_1.6/* yocto/meta-intel/meta-crownbay/recipes-graphics/xorg-xserver/",
-                    timeout=60))
-    if PUBLISH_BUILDS == True:
-        runPreamble(f22)
+
+
+
+
+
 
 def runBSPLayerPostamble(factory):
     if PUBLISH_BUILDS == True:
