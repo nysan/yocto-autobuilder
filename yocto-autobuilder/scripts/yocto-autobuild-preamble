@@ -1,0 +1,58 @@
+#!/bin/bash
+#
+# Yocto Autobuilder Preamble Script
+#
+# Copyright (c) 2011 Intel Corp.
+#
+# This script is intended to be run at the start of an autobuilder
+# buildset and creates some directories and flag files used in
+# later parts of the buildset. The optional deploy-basedir argument
+# will set up a date-buildnumber subdirectory where the build output
+# will be copied to by the yocto-autobuild-copy-images script.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+mkdir -p ./build/tmp/deploy/images
+rm -f ./build/tmp/deploy/images/images-complete
+git log -1 > ./build/tmp/deploy/images/gitinfo
+
+if [ -z "$1" ]; then
+	exit 0
+fi
+
+if [ ! -d "$1" ]; then
+	echo "Error: deployment base dir '$1' does not exist"
+	exit 1
+fi
+
+# Work out a deployment path which includes the date and an
+# incremental revision number
+DEST=$1
+DATE=`date +%Y%m%d`
+REV=1
+
+while [ -d "$DEST/$DATE-$REV" ]; do
+	REV=$((REV + 1))
+done
+DEPLOYDIR="$DEST/$DATE-$REV"
+
+echo "Build output will be saved in $DEPLOYDIR"
+
+mkdir "$DEPLOYDIR"
+echo "$DATE-$REV" > deploy-dir
+
+if [ ! -e deploy-dir ]; then
+	echo "Error: could not create deploy-dir file"
+	exit 1
+fi
+
+#cp ~/BUILD_INCOMPLETE.txt.template "$DEPLOYDIR/BUILD_INCOMPLETE.txt"
+
+exit 0

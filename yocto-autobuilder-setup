@@ -28,7 +28,6 @@ config_check=`cat ${PWD}/yocto-master/master.cfg|grep "'<USER>', '<PASS>'"`
 # this to their env
 #
 #########################################
-
 echo "#########################################################################"
 echo " Setting envvars. "
 echo " In the future though please add the following to your shell environment: "

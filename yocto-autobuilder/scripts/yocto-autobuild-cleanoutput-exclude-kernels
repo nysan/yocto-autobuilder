@@ -1,7 +1,5 @@
 #!/bin/bash
 #
-# Yocto Automated Build Server Enviroment Setup Script
-#
 # Copyright (C) 2011 Intel Corp.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -17,34 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+rm `ls build/tmp/deploy/images/ | grep -v 'bzImage' |grep -v 'uImage' |grep -v 'vmlinux'` || /bin/true
+rm build/tmp/deploy/sdk/* || /bin/true
 
-CURRDIR=`pwd`
-CURRDIR=`readlink -f $CURRDIR`
-
-echo "ABTARGET is $ABTARGET"
-echo "Commands are $@"
-
-cd $CURRDIR
-
-echo "Changed to $CURRDIR"
-
-BDIR="build"
-source ./oe-init-build-env
-
-# Additions needed to work behind a generic proxy
-#SITECONF="./conf/site.conf"
-#
-#if [ ! -e "$SITECONF" ]; then
-#	echo 'SCONF_VERSION = "1"' > "$SITECONF"
-#	echo 'CVS_PROXY_HOST = "proxy.sitename"' >> "$SITECONF"
-#	echo 'CVS_PROXY_PORT = "proxyportnumber"' >> "$SITECONF"
-#	echo 'GIT_PROXY_HOST = "proxy.sitename"' >> "$SITECONF"
-#	echo 'GIT_PROXY_PORT = "proxyportnumber"' >> "$SITECONF"
-#	echo 'GIT_PROXY_COMMAND = "/usr/local/bin/git-proxy"' >> "$SITECONF"
-#fi
-
-bitbake $@
-
-retval=$?
-
-exit $retval

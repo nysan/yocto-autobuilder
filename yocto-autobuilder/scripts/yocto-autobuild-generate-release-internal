@@ -1,0 +1,232 @@
+#!/bin/bash
+#
+# Yocto Automated Build Server Release Generation Script. This script
+# takes output generated during an autobuidler build set and copies it
+# into the sepcified deployment base directory.
+#
+# Copyright (C) 2011 Intel Corp.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+RELEASE_TYPE=$1
+DEPLOY_DIR=$2
+
+function usage() {
+	echo "Usage: $0 [nightly|weekly|milestone] <deploy-base-directory>"
+}
+
+if [ $# != 2 ]; then
+	usage
+	exit 1
+fi
+
+if [[ "x$RELEASE_TYPE" != "xnightly" && "x$RELEASE_TYPE" != "xweekly" && "x$RELEASE_TYPE" != "xmilestone" ]]; then
+	echo "Error: Unknown release type '$RELEASE_TYPE'"
+	usage
+	exit 1
+fi
+
+if [ ! -d $DEPLOY_DIR ]; then
+	echo "Error: deployment directory '$DEPLOY_DIR' does not exist!"
+	usage
+	exit 1
+fi
+
+if [ ! -d ./build/tmp/deploy/ ]; then
+	echo "Error: I do not see a build/tmp/deploy/ directory to work from!"
+	exit 1
+fi
+
+cd ./build/tmp/deploy/
+
+# Work out a destination path which includes the date and an incremental 
+# revision number
+DEST=$DEPLOY_DIR/$RELEASE_TYPE/
+BASE=`date +%Y%m%d`
+REV=1
+
+while [ -d "$DEST$BASE-$REV" ]
+do
+    REV=`expr $REV + 1`
+done
+
+# Weekly builds only run if the day of week is Wednesday
+if [ "x$RELEASE_TYPE" = "xweekly" ]; then
+	DOW=`date +%a`
+	if [ "x$DOW" != "xWed" ]; then
+		echo "Skipping weekly build since today is $DOW"
+		exit 0
+	else
+		# We expect the nightly build to have been run first,
+		# so let's save disk space by just symlinking the dir
+		NIGHTLY_DIR=$DEPLOY_DIR/nightly/$BASE-$REV
+		if [ ! -e $NIGHTLY_DIR ]; then
+			echo "Error: nightly dir '$NIGHTLY_DIR' does not exist"
+			echo "(I need it to symlink to in weekly/)"
+			exit 1
+		fi
+		ln -s $NIGHTLY_DIR $DEST$BASE-$REV
+		exit 0
+	fi
+fi
+
+DEST="$DEST$BASE-$REV"
+mkdir -p $DEST/qemu/qemux86
+mkdir -p $DEST/qemu/qemux86-64
+mkdir -p $DEST/emenlow/x86_32
+mkdir -p $DEST/atom-pc/x86_32
+mkdir -p $DEST/toolchain/i686
+mkdir -p $DEST/toolchain/x86_64
+
+# Copy the prebuilds - DISABLED FOR INTERNAL BUILDER
+#echo "Copying prebuild area to $DEST/pstage/"
+#cp -r ../../pstage2 $DEST/
+
+# The following is ripe for DRYing up, which will be done once the
+# release process stabilizes further.
+
+cd images
+
+cp gitinfo $DEST/
+
+FILES_QEMUX86=(
+	`readlink bzImage-qemux86.bin`
+	modules-*-qemux86.tgz
+	`readlink core-image-minimal-qemux86.ext3`
+	`readlink core-image-minimal-qemux86.tar.bz2`
+	`readlink core-image-lsb-qemux86.ext3`
+	`readlink core-image-lsb-qemux86.tar.bz2`
+	`readlink core-image-sato-qemux86.ext3`
+	`readlink core-image-sato-qemux86.tar.bz2`
+	`readlink core-image-sdk-qemux86.ext3`
+	`readlink core-image-sdk-qemux86.tar.bz2`
+	)
+
+for file in ${FILES_QEMUX86[@]}; do
+	if [ -e $file ]; then
+		echo "Copying $file to $DEST/qemux86/"
+		cp $file $DEST/qemu/qemux86/
+	else
+		echo "WARNING: $file does not exist (due to build failure?)"
+	fi
+done
+
+FILES_QEMUX86_64=(
+	`readlink bzImage-qemux86-64.bin`
+	modules-*-qemux86-64.tgz
+	`readlink core-image-minimal-qemux86-64.ext3`
+	`readlink core-image-minimal-qemux86-64.tar.bz2`
+	`readlink core-image-lsb-qemux86-64.ext3`
+	`readlink core-image-lsb-qemux86-64.tar.bz2`
+	`readlink core-image-sato-qemux86-64.ext3`
+	`readlink core-image-sato-qemux86-64.tar.bz2`
+	`readlink core-image-sdk-qemux86-64.ext3`
+	`readlink core-image-sdk-qemux86-64.tar.bz2`
+	)
+
+for file in ${FILES_QEMUX86_64[@]}; do
+	if [ -e $file ]; then
+		echo "Copying $file to $DEST/qemux86-64/"
+		cp $file $DEST/qemu/qemux86-64/
+	else
+		echo "WARNING: $file does not exist (due to build failure?)"
+	fi
+done
+
+FILES_EMENLOW=(
+	`readlink bzImage-emenlow.bin`
+	modules-*-emenlow.tgz
+	`readlink core-image-minimal-emenlow.cpio.gz`
+	`readlink core-image-minimal-emenlow.ext3`
+	`readlink core-image-minimal-initramfs-emenlow.cpio.gz`
+	`readlink core-image-minimal-initramfs-emenlow.ext3`
+	`readlink core-image-minimal-live-emenlow.hddimg`
+	`readlink core-image-minimal-live-emenlow.iso`
+	`readlink core-image-sato-emenlow.cpio.gz`
+	`readlink core-image-sato-emenlow.ext3`
+	`readlink core-image-sato-live-emenlow.hddimg`
+	`readlink core-image-sato-live-emenlow.iso`
+	`readlink core-image-sdk-emenlow.cpio.gz`
+	`readlink core-image-sdk-emenlow.ext3`
+	`readlink core-image-sdk-live-emenlow.hddimg`
+	`readlink core-image-sdk-live-emenlow.iso`
+	)
+
+for file in ${FILES_EMENLOW[@]}; do
+	if [ -e $file ]; then
+		echo "Copying $file to $DEST/qemuppc/"
+		cp $file $DEST/emenlow/x86_32/
+	else
+		echo "WARNING: $file does not exist (due to build failure?)"
+	fi
+done
+
+FILES_ATOM_PC=(
+	`readlink bzImage-atom-pc.bin`
+	modules-*-atom-pc.tgz
+	`readlink core-image-minimal-initramfs-atom-pc.cpio.gz`
+	`readlink core-image-minimal-initramfs-atom-pc.ext3`
+	`readlink core-image-minimal-live-atom-pc.hddimg`
+	`readlink core-image-minimal-live-atom-pc.iso`
+	`readlink core-image-minimal-atom-pc.cpio.gz`
+	`readlink core-image-minimal-atom-pc.ext3`
+	`readlink core-image-sato-atom-pc.cpio.gz`
+	`readlink core-image-sato-atom-pc.ext3`
+	`readlink core-image-sato-live-atom-pc.hddimg`
+	`readlink core-image-sato-live-atom-pc.iso`
+	`readlink core-image-sdk-live-atom-pc.hddimg`
+	`readlink core-image-sdk-live-atom-pc.iso`
+	`readlink core-image-sdk-atom-pc.cpio.gz`
+	`readlink core-image-sdk-atom-pc.ext3`
+	)
+
+for file in ${FILES_ATOM_PC[@]}; do
+	if [ -e $file ]; then
+		echo "Copying $file to $DEST/qemuppc/"
+		cp $file $DEST/atom-pc/x86_32/
+	else
+		echo "WARNING: $file does not exist (due to build failure?)"
+	fi
+done
+
+cd ../sdk/
+
+FILES_TOOLCHAIN_i586=(
+	*glibc-i586-*-toolchain-*.tar.bz2
+	)
+
+for file in ${FILES_TOOLCHAIN_i586[@]}; do
+	if [ -e $file ]; then
+		echo "Copying $file to $DEST/toolchain/i686/"
+		cp $file $DEST/toolchain/i686/
+	else
+		echo "WARNING: $file does not exist (due to build failure?)"
+	fi
+done
+
+FILES_TOOLCHAIN_x86_64=(
+	*glibc-x86_64-*-toolchain-*.tar.bz2
+	)
+
+for file in ${FILES_TOOLCHAIN_x86_64[@]}; do
+	if [ -e $file ]; then
+		echo "Copying $file to $DEST/toolchain/x86_64/"
+		cp $file $DEST/toolchain/x86_64/
+	else
+		echo "WARNING: $file does not exist (due to build failure?)"
+	fi
+done
+
+echo "Done"

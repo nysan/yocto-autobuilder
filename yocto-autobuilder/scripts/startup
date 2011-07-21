@@ -1,0 +1,4 @@
+#!/bin/bash
+. ~/.profile
+/home/pokybuild/bin/buildbot start /home/pokybuild/poky-master
+/home/pokybuild/bin/buildbot start /home/pokybuild/poky-slave

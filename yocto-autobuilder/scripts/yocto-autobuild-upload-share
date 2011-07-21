@@ -1,0 +1,49 @@
+#!/bin/sh
+#
+# Watch an upload directory and whenever a X.done file appears, share the file
+# X from SRCDIR to TARGETDIR. This prevents users seeing partial uploads.
+#
+#
+# Copyright (C) 2011 Intel Corp.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+SRCDIR=/srv/www/site/autobuild-tmp
+TARGETDIR=/srv/www/site/autobuild
+LOCK=$HOME/yocto-upload-share-active
+
+if [ -e "$LOCK" ]; then
+    exit 0
+fi
+touch $LOCK
+
+cd $SRCDIR
+
+for FILE in `find . -type f`; do
+    case $FILE in
+    *.done)
+        ;;
+    *)
+        if [ -e "$FILE.done" ]; then
+            DESTDIR=`dirname $TARGETDIR/$FILE`
+            mkdir -p $DESTDIR
+            mv $FILE $TARGETDIR/$FILE
+            rm $FILE.done
+        fi
+        ;;
+    esac
+done
+
+rm $LOCK

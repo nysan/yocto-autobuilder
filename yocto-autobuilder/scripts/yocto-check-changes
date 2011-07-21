@@ -1,0 +1,63 @@
+#!/bin/bash
+#
+# Run this script from cron to poll poky master for changes, and
+# trigger a Buildbot change-notify event if there have been new
+# commits.
+#
+# Copyright (C) 2011 Intel Corp.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+GIT_CMD="git ls-remote git://git.pokylinux.org/poky.git | grep master"
+BB_SCRIPT="/home/pokybuild/yocto-autobuilder/scripts/yocto-buildbot-change-notify"
+
+for DIR in yocto-incremental; do
+    cd `readlink -f /home/pokybuild/yocto-slave/$DIR/build`
+
+    COUNTER=0
+    GITOUTPUT=`$GIT_CMD`
+    while [ $? != 0 ]; do
+        echo "git ls-remote failed; retrying"
+
+        ((COUNTER += 1))
+        if [ "$COUNTER" -gt 2 ]; then
+            echo "Too many git retries, giving up"
+            exit 1
+        fi
+
+        sleep 5
+        GITOUTPUT=`$GIT_CMD`
+    done
+
+    REMOTEREV=`echo $GITOUTPUT | awk '{print $1}'`
+    LOCALREV=`cat .git/refs/heads/master`
+
+    echo $REMOTEREV $LOCALREV
+    if [ "$REMOTEREV" != "$LOCALREV" ]; then
+        echo "Remote changed (poky master updates)"
+        $BB_SCRIPT $DIR
+        exit 0
+    fi
+
+    # This checks every floating git SRCREV for changes
+    source ./oe-init-build-env
+
+    bitbake --revisions-changed
+    EXITCODE=$?
+    if [ "$EXITCODE" != "0" ]; then
+        echo "Remote changed (SRCREV updates)"
+        $BB_SCRIPT $DIR
+    fi
+done

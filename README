@@ -17,4 +17,3 @@ published (needed for production autobuilders, not needed for desktop builders)
 
 yocto-master/yoctoABConfig.py
 
-
