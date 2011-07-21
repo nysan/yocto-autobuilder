@@ -89,6 +89,7 @@ echo " README files "
 echo ""
 echo "#########################################################################"
 echo ""
+export BUILD_PUBLISH_DIR=/tmp/yocto-autobuilder/builds
 buildbot upgrade-master ${PWD}/yocto-master
 echo " To start the autobuilder:"
 echo " ./yocto-start-autobuilder <slave|master|both>"
