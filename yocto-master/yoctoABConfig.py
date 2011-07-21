@@ -175,8 +175,8 @@ def runBSPLayerPreamble(factory):
                     timeout=60))
 
 def runImage(factory, machine, image, bsplayer):
-    factory.addStep(createAutoConf(workdir=WithProperties("%s", "workdir"), btarget=machine))
-    factory.addStep(createBBLayersConf(workdir=WithProperties("%s", "workdir"), btarget=machine, bsplayer=bsplayer))
+    factory.addStep(createAutoConf(WithProperties("%s", "workdir"), btarget=machine))
+    factory.addStep(createBBLayersConf(WithProperties("%s", "workdir"), btarget=machine, bsplayer=bsplayer))
     defaultenv['MACHINE'] = machine
     factory.addStep(ShellCommand, description=["Building", machine, image],
                     command=["yocto-autobuild", image, "-k"],
@@ -315,8 +315,8 @@ def fuzzyBuild(factory):
                     command=["echo", WithProperties("%s", "FuzzImage"),  
                              WithProperties("%s", "FuzzArch"), 
                              WithProperties("%s", "FuzzSDK")]))    
-    factory.addStep(createAutoConf(workdir=WithProperties("%s", "workdir"), btarget=WithProperties("%s", "FuzzArch")))
-    factory.addStep(createBBLayersConf(workdir=WithProperties("%s", "workdir"), btarget=WithProperties("%s", "FuzzArch"), bsplayer=False))
+    factory.addStep(createAutoConf(WithProperties("%s", "workdir"), btarget=WithProperties("%s", "FuzzArch")))
+    factory.addStep(createBBLayersConf(WithProperties("%s", "workdir"), btarget=WithProperties("%s", "FuzzArch"), bsplayer=False))
     factory.addStep(ShellCommand, 
                     description=["Building", WithProperties("%s", "FuzzImage")],
                     command=["yocto-autobuild", 
@@ -337,8 +337,8 @@ def metaBuild(factory):
                     description="Getting to meta build parameters",
                     command='echo "Getting to meta build parameters"'))
     runPreamble(factory)
-    factory.addStep(createAutoConf(workdir=WithProperties("%s", "workdir"), btarget=WithProperties("%s", "machine")))
-    factory.addStep(createBBLayersConf(workdir=WithProperties("%s", "workdir"), btarget=WithProperties("%s", "machine")))
+    factory.addStep(createAutoConf(WithProperties("%s", "workdir"), btarget=WithProperties("%s", "machine")))
+    factory.addStep(createBBLayersConf(WithProperties("%s", "workdir"), btarget=WithProperties("%s", "machine"), bsplayer=False))
     factory.addStep(ShellCommand, description=["Building", WithProperties("%s", "MetaImage")],
                     command=["yocto-autobuild", WithProperties("%s", "MetaImage"), "-k"],
                     env=copy.copy(defaultenv),
@@ -888,5 +888,4 @@ b210 = {'name': "sugarbay",
        'builddir': "sugarbay",
        'factory': f210}
 yocto_builders.append(b210)
-
 
