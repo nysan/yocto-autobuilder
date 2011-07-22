@@ -178,8 +178,8 @@ def runBSPLayerPreamble(factory):
                     timeout=60))
 
 def runImage(factory, machine, image, bsplayer):
-    factory.addStep(createAutoConf(WithProperties("%s", "workdir"), btarget=machine))
-    factory.addStep(createBBLayersConf(WithProperties("%s", "workdir"), btarget=machine, bsplayer=bsplayer))
+    factory.addStep(createAutoConf(workdir=WithProperties("%s", "workdir"), btarget=machine))
+    factory.addStep(createBBLayersConf(workdir=WithProperties("%s", "workdir"), btarget=machine, bsplayer=bsplayer))
     defaultenv['MACHINE'] = machine
     factory.addStep(ShellCommand, description=["Building", machine, image],
                     command=["yocto-autobuild", image, "-k"],
@@ -212,7 +212,7 @@ def runPreamble(factory):
                     command=["mkdir", "-p", defaultenv['DEST']], 
                     timeout=60)
     factory.addStep(ShellCommand, description="Marking deploy-dir", 
-                    command=["echo", DEST_DATE + "-" + str(REV), ">", "deploy-dir"], 
+                    command=["echo", DEST_DATE + "-" + str(REV), ">>", "deploy-dir"], 
                     timeout=60)
 
 def getRepo(step):
@@ -323,9 +323,9 @@ def fuzzyBuild(factory):
                                  WithProperties("%s", "FuzzSDK")],
                     command=["echo", WithProperties("%s", "FuzzImage"),  
                              WithProperties("%s", "FuzzArch"), 
-                             WithProperties("%s", "FuzzSDK")]))    
-    factory.addStep(createAutoConf(WithProperties("%s", "workdir"), btarget=WithProperties("%s", "FuzzArch")))
-    factory.addStep(createBBLayersConf(WithProperties("%s", "workdir"), btarget=WithProperties("%s", "FuzzArch"), bsplayer=False))
+                             WithProperties("%s", "FuzzSDK")]))
+    factory.addStep(createAutoConf(workdir=WithProperties("%s", "workdir"), btarget=WithProperties("%s", "FuzzArch")))
+    factory.addStep(createBBLayersConf(workdir=WithProperties("%s", "workdir"), btarget=WithProperties("%s", "FuzzArch"), bsplayer=False))
     factory.addStep(ShellCommand, 
                     description=["Building", WithProperties("%s", "FuzzImage")],
                     command=["yocto-autobuild", 
@@ -342,12 +342,13 @@ def getMetaParams(step):
 def metaBuild(factory):
     defaultenv['IMAGETYPES'] = ""
     defaultenv['SDKMACHINE'] = ""
+    defaultenv['MACHINE'] = ""
     factory.addStep(ShellCommand(doStepIf=getMetaParams,
                     description="Getting to meta build parameters",
                     command='echo "Getting to meta build parameters"'))
     runPreamble(factory)
-    factory.addStep(createAutoConf(WithProperties("%s", "workdir"), btarget=WithProperties("%s", "machine")))
-    factory.addStep(createBBLayersConf(WithProperties("%s", "workdir"), btarget=WithProperties("%s", "machine"), bsplayer=False))
+    factory.addStep(createAutoConf(workdir=WithProperties("%s", "workdir"), btarget=defaultenv['MACHINE']))
+    factory.addStep(createBBLayersConf(workdir=WithProperties("%s", "workdir"), btarget=defaultenv['MACHINE'], bsplayer=False))
     factory.addStep(ShellCommand, description=["Building", WithProperties("%s", "MetaImage")],
                     command=["yocto-autobuild", WithProperties("%s", "MetaImage"), "-k"],
                     env=copy.copy(defaultenv),
@@ -646,8 +647,8 @@ defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['SSTATE_DIR'] =    BUILD_PUBLISH_DIR + '/sstate-cache'
 defaultenv['REVISION'] = "HEAD"
 makeCheckout(f66)
-f65.addStep(createAutoConf(WithProperties("%s/build/build/conf", "workdir")))
-f65.addStep(createBBLayersConf(WithProperties("%s/build/build/conf", "workdir")))
+f66.addStep(createAutoConf(workdir=WithProperties("%s", "workdir"), btarget="qemux86"))
+f66.addStep(createBBLayersConf(workdir=WithProperties("%s", "workdir"), btarget="qemux86", bsplayer=False))
 if PUBLISH_BUILDS == "True":
     runPreamble(f66)
 f66.addStep(ShellCommand, description="Setting SDKMACHINE=i686", 
