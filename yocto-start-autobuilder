@@ -73,8 +73,8 @@ if os.path.isfile(os.path.join(AB_BASE, ".setupdone")):
        subprocess.call(["make", "start"])
        os.chdir(AB_BASE)
 else:
-    print "You have not sourced ./yocto-setup-autobuilder. Please do so first!"
+    print "You have not sourced ./yocto-autobuilder-setup. Please do so first!"
     print ""
-    print " . ./yocto-setup-autobuilder"
+    print " . ./yocto-autobuilder-setup"
     sys.exit(1)
 

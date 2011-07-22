@@ -243,12 +243,12 @@ def makeCheckout(factory):
                     description=["Building", WithProperties("%s", "branch"),  WithProperties("%s", "repository")],
                     command=["echo", WithProperties("%s", "branch"),  WithProperties("%s", "repository")]))
     factory.addStep(Git(
-                    #mode="clobber", 
+                    mode="clobber", 
                     branch=WithProperties("%s", "branch"),
                     timeout=10000, retry=(5, 3)))
     factory.addStep(ShellCommand(doStepIf=getTag, command=["git", "checkout",  WithProperties("%s", "pokytag")], timeout=1000))
     factory.addStep(Git(repourl="git://git.pokylinux.org/meta-qt3.git", 
-                    #mode="clobber", 
+                    mode="clobber", 
                     workdir="build/meta-qt3",
                     branch="master",
                     timeout=10000, retry=(5, 3)))
@@ -639,8 +639,7 @@ defaultenv['REVISION'] = "HEAD"
 makeCheckout(f66)
 f65.addStep(createAutoConf(WithProperties("%s/build/build/conf", "workdir")))
 f65.addStep(createBBLayersConf(WithProperties("%s/build/build/conf", "workdir")))
-if PUBLISH_BUILDS == "True":
-    runPreamble(f66)
+if PUBLISH_BUILDS == "True":\nrunPreamble(f66)
 f66.addStep(ShellCommand, description="Setting SDKMACHINE=i686", 
             command="echo 'Setting SDKMACHINE=i686'", timeout=10)
 defaultenv['SDKMACHINE'] = 'i686'
@@ -698,8 +697,7 @@ nightlyQEMU(f70, 'qemux86-64', 'poky-lsb')
 nightlyBSP(f70, 'atom-pc', 'poky-lsb')
 runImage(f70, 'qemux86', 'package-index', False)
 makeTarball(f70)
-if PUBLISH_BUILDS == "True":
-    f70.addStep(ShellCommand, description="Copying toolchain-x86-64 build output", 
+if PUBLISH_BUILDS == "True":\nf70.addStep(ShellCommand, description="Copying toolchain-x86-64 build output", 
                 command="yocto-autobuild-copy-images toolchain nightly " +    BUILD_PUBLISH_DIR , 
                 timeout=600)
     f70.addStep(ShellCommand, description="Copying IPK feed output", 
