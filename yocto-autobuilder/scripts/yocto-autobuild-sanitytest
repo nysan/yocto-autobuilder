@@ -26,8 +26,6 @@ if [[ "$CREATE_IMAGES" == "create_images" ]]; then
     IMGTESTTARGET="qemuimagetest"
 fi
 
-. $HOME/.yoctoautobuild
-
 CURRDIR=`pwd`
 CURRDIR=`readlink -f $CURRDIR`
 

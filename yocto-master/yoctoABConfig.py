@@ -615,16 +615,16 @@ f65.addStep(ShellCommand, description="Copying eclipse build tools",
 f65.addStep(ShellCommand, description="Building eclipse plugin", 
             command="yocto-eclipse-plugin-build combo master", timeout=120)
 
-if PUBLISH_BUILDS == "True":
-    f65.addStep(ShellCommand, description="Copying eclipse plugin output", 
-                command="yocto-autobuild-copy-images eclipse-plugin nightly " +    BUILD_PUBLISH_DIR, 
-                timeout=60)
-    f65.addStep(ShellCommand, description="Copying buildstatistics output", 
-                command="yocto-autobuild-copy-images buildstats nightly " +    BUILD_PUBLISH_DIR, 
-                timeout=600)
-    f65.addStep(ShellCommand, description="Creating CURRENT link", 
-                command="yocto-autobuild-generate-current-link nightly " +    BUILD_PUBLISH_DIR +"/ current", 
-                timeout=20)
+#if PUBLISH_BUILDS == "True":
+#    f65.addStep(ShellCommand, description="Copying eclipse plugin output", 
+#                command="yocto-autobuild-copy-images eclipse-plugin nightly " +    BUILD_PUBLISH_DIR, 
+#                timeout=60)
+#    f65.addStep(ShellCommand, description="Copying buildstatistics output", 
+#                command="yocto-autobuild-copy-images buildstats nightly " +    BUILD_PUBLISH_DIR, 
+#                timeout=600)
+#    f65.addStep(ShellCommand, description="Creating CURRENT link", 
+#                command="yocto-autobuild-generate-current-link nightly " +    BUILD_PUBLISH_DIR +"/ current", 
+#               timeout=20)
                 
 if PUBLISH_SSTATE == "True":
     f65.addStep(ShellCommand, description="Syncing shared state cache to mirror", 
