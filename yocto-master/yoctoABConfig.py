@@ -361,8 +361,8 @@ def nightlyQEMU(factory, machine, distrotype):
        runImage(factory, machine, 'core-image-lsb core-image-lsb-dev core-image-lsb-sdk', False)
     defaultenv['DISTRO'] = 'poky'
     factory.addStep(ShellCommand, description="Copying " + machine + " build output", 
-                    command="cp -R " + 
-                    defaultenv['DEST'], 
+                    command="yocto-autobuild-copy-images " + 
+                    machine + " nightly " +    BUILD_PUBLISH_DIR, 
                     timeout=600)
 
 def nightlyBSP(factory, machine, distrotype):
