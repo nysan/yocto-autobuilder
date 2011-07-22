@@ -88,7 +88,6 @@ class createBBLayersConf(LoggingBuildStep):
 
     def start(self):
         BBLAYER = self.workdir + "/build/build/conf/bblayers.conf"
-        log.msg(BBLAYER)
         try:
             os.remove(BBLAYER)        
         except:
@@ -99,9 +98,6 @@ class createBBLayersConf(LoggingBuildStep):
         fout.write('BBLAYERS = " \ \n')
         fout.write(self.workdir + '/build/meta \ \n')
         fout.write(self.workdir + '/build/meta-yocto \ \n')
-        log.msg("-----------------------------------------------")
-        log.msg(BBLAYER)
-        log.msg("-----------------------------------------------")
         if self.bsplayer is True:
             fout.write(self.workdir + '/build/yocto/meta-intel/meta-' + self.btarget + ' \ \n')
         fout.write(self.workdir + '/build/meta-qt3 " \n')
@@ -247,12 +243,7 @@ def makeCheckout(factory):
                     branch=WithProperties("%s", "branch"),
                     timeout=10000, retry=(5, 3)))
     factory.addStep(ShellCommand(doStepIf=getTag, command=["git", "checkout",  WithProperties("%s", "pokytag")], timeout=1000))
-
-    factory.addStep(Git(repourl="git://git.pokylinux.org/meta-qt3.git", 
-                    mode="clobber", 
-                    workdir="build/meta-qt3",
-                    branch="master",
-                    timeout=10000, retry=(5, 3)))
+    factory.addStep(ShellCommand(workdir="build", command=["git", "clone",  "git://git.pokylinux.org/meta-qt3.git"], timeout=1000))
     factory.addStep(shell.SetProperty(workdir="build/meta-qt3",
                     command="git rev-parse HEAD",
                     property="QTHASH"))
