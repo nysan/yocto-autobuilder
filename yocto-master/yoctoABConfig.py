@@ -93,22 +93,19 @@ class createBBLayersConf(LoggingBuildStep):
             os.remove(BBLAYER)        
         except:
             pass
-        try:        
-            fout = open(BBLAYER, "wb")            
-            fout.write('LCONF_VERSION = "4" \n')
-            fout.write('BBFILES ?="" \n')
-            fout.write('BBLAYERS = " \ \n')
-            fout.write(self.workdir + '/build/meta \ \n')
-            fout.write(self.workdir + '/build/meta-yocto \ \n')
-            log.msg("-----------------------------------------------")
-            log.msg(self.btarget)
-            log.msg("-----------------------------------------------")
-            if self.bsplayer is True:
-                fout.write(self.workdir + '/build/yocto/meta-intel/meta-' + self.btarget + ' \ \n')
-            fout.write(self.workdir + '/build/meta-qt3 " \n')
-            fout.close()            
-        except:
-            return self.finished(FAILURE)
+        fout = open(BBLAYER, "wb")            
+        fout.write('LCONF_VERSION = "4" \n')
+        fout.write('BBFILES ?="" \n')
+        fout.write('BBLAYERS = " \ \n')
+        fout.write(self.workdir + '/build/meta \ \n')
+        fout.write(self.workdir + '/build/meta-yocto \ \n')
+        log.msg("-----------------------------------------------")
+        log.msg(BBLAYER)
+        log.msg("-----------------------------------------------")
+        if self.bsplayer is True:
+            fout.write(self.workdir + '/build/yocto/meta-intel/meta-' + self.btarget + ' \ \n')
+        fout.write(self.workdir + '/build/meta-qt3 " \n')
+        fout.close()            
         return self.finished(SUCCESS)
 
 class createAutoConf(LoggingBuildStep):
@@ -137,26 +134,22 @@ class createAutoConf(LoggingBuildStep):
             os.remove(AUTOCONF)        
         except:
             pass
-     
-        try:        
-            fout = open(AUTOCONF, "wb")        
-            fout.write('PACKAGE_CLASSES = "package_rpm package_deb package_ipk"\n') 
-            fout.write('BB_NUMBER_THREADS = "10"\n')
-            fout.write('PARALLEL_MAKE = "-j 16"\n')
-            fout.write('SDKMACHINE ?= "i586"\n')
-            fout.write('DL_DIR = ' + defaultenv['DL_DIR']+"\n")
-            fout.write('SSTATE_DIR ?= ' + defaultenv['SSTATE_DIR']+"\n")
-            #fout.write('INHERIT += "rm_work"\n')
-            fout.write('MACHINE = ' + self.btarget + "\n")
-            #fout.write('MIRRORS = ""\n')
-            fout.write('PREMIRRORS = ""\n')
-            if defaultenv['ENABLE_SWABBER'] == 'true':
-                fout.write('USER_CLASSES += "image-prelink image-swab"\n')
-            if PUBLISH_BUILDS == "True":
-                fout.write('BB_GENERATE_MIRROR_TARBALLS = "1"\n')           
-            fout.close()
-        except:
-            return self.finished(FAILURE)
+        fout = open(AUTOCONF, "wb")        
+        fout.write('PACKAGE_CLASSES = "package_rpm package_deb package_ipk"\n') 
+        fout.write('BB_NUMBER_THREADS = "10"\n')
+        fout.write('PARALLEL_MAKE = "-j 16"\n')
+        fout.write('SDKMACHINE ?= "i586"\n')
+        fout.write('DL_DIR = ' + defaultenv['DL_DIR']+"\n")
+        fout.write('SSTATE_DIR ?= ' + defaultenv['SSTATE_DIR']+"\n")
+        #fout.write('INHERIT += "rm_work"\n')
+        fout.write('MACHINE = ' + self.btarget + "\n")
+        #fout.write('MIRRORS = ""\n')
+        fout.write('PREMIRRORS = ""\n')
+        if defaultenv['ENABLE_SWABBER'] == 'true':
+            fout.write('USER_CLASSES += "image-prelink image-swab"\n')
+        if PUBLISH_BUILDS == "True":
+            fout.write('BB_GENERATE_MIRROR_TARBALLS = "1"\n')           
+        fout.close()
         return self.finished(SUCCESS)
 
 def runBSPLayerPreamble(factory):
@@ -178,6 +171,10 @@ def runBSPLayerPreamble(factory):
                     timeout=60))
 
 def runImage(factory, machine, image, bsplayer):
+    factory.addStep(ShellCommand, description=["Setting up build"],
+                    command=["yocto-autobuild-preamble"],
+                    env=copy.copy(defaultenv),
+                    timeout=14400)                            
     factory.addStep(createAutoConf(workdir=WithProperties("%s", "workdir"), btarget=machine))
     factory.addStep(createBBLayersConf(workdir=WithProperties("%s", "workdir"), btarget=machine, bsplayer=bsplayer))
     defaultenv['MACHINE'] = machine
@@ -324,6 +321,10 @@ def fuzzyBuild(factory):
                     command=["echo", WithProperties("%s", "FuzzImage"),  
                              WithProperties("%s", "FuzzArch"), 
                              WithProperties("%s", "FuzzSDK")]))
+    factory.addStep(ShellCommand, description=["Setting up build"],
+                    command=["yocto-autobuild-preamble"],
+                    env=copy.copy(defaultenv),
+                    timeout=14400)                                                  
     factory.addStep(createAutoConf(workdir=WithProperties("%s", "workdir"), btarget=WithProperties("%s", "FuzzArch")))
     factory.addStep(createBBLayersConf(workdir=WithProperties("%s", "workdir"), btarget=WithProperties("%s", "FuzzArch"), bsplayer=False))
     factory.addStep(ShellCommand, 
@@ -347,6 +348,10 @@ def metaBuild(factory):
                     description="Getting to meta build parameters",
                     command='echo "Getting to meta build parameters"'))
     runPreamble(factory)
+    factory.addStep(ShellCommand, description=["Setting up build"],
+                    command=["yocto-autobuild-preamble"],
+                    env=copy.copy(defaultenv),
+                    timeout=14400)                                                 
     factory.addStep(createAutoConf(workdir=WithProperties("%s", "workdir"), btarget=defaultenv['MACHINE']))
     factory.addStep(createBBLayersConf(workdir=WithProperties("%s", "workdir"), btarget=defaultenv['MACHINE'], bsplayer=False))
     factory.addStep(ShellCommand, description=["Building", WithProperties("%s", "MetaImage")],
@@ -647,6 +652,12 @@ defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['SSTATE_DIR'] =    BUILD_PUBLISH_DIR + '/sstate-cache'
 defaultenv['REVISION'] = "HEAD"
 makeCheckout(f66)
+f66.addStep(ShellCommand, 
+            workdir="build",
+            description=["Sourcing oe-init-build-env"],
+            command=["source", "oe-init-build-env"],
+            env=copy.copy(defaultenv),
+            timeout=14400)                             
 f66.addStep(createAutoConf(workdir=WithProperties("%s", "workdir"), btarget="qemux86"))
 f66.addStep(createBBLayersConf(workdir=WithProperties("%s", "workdir"), btarget="qemux86", bsplayer=False))
 if PUBLISH_BUILDS == "True":
