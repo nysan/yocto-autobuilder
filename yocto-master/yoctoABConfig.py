@@ -247,6 +247,7 @@ def makeCheckout(factory):
                     branch=WithProperties("%s", "branch"),
                     timeout=10000, retry=(5, 3)))
     factory.addStep(ShellCommand(doStepIf=getTag, command=["git", "checkout",  WithProperties("%s", "pokytag")], timeout=1000))
+
     factory.addStep(Git(repourl="git://git.pokylinux.org/meta-qt3.git", 
                     mode="clobber", 
                     workdir="build/meta-qt3",
@@ -343,7 +344,6 @@ def getMetaParams(step):
 def metaBuild(factory):
     defaultenv['IMAGETYPES'] = ""
     defaultenv['SDKMACHINE'] = ""
-    defaultenv['MACHINE'] = ""
     factory.addStep(ShellCommand(doStepIf=getMetaParams,
                     description="Getting to meta build parameters",
                     command='echo "Getting to meta build parameters"'))
@@ -352,8 +352,8 @@ def metaBuild(factory):
                     command=["yocto-autobuild-preamble"],
                     env=copy.copy(defaultenv),
                     timeout=14400)                                                 
-    factory.addStep(createAutoConf(workdir=WithProperties("%s", "workdir"), btarget=defaultenv['MACHINE']))
-    factory.addStep(createBBLayersConf(workdir=WithProperties("%s", "workdir"), btarget=defaultenv['MACHINE'], bsplayer=False))
+    factory.addStep(createAutoConf(workdir=WithProperties("%s", "workdir"), btarget=WithProperties("%s", "machine")))
+    factory.addStep(createBBLayersConf(workdir=WithProperties("%s", "workdir"), btarget=WithProperties("%s", "machine"), bsplayer=False))
     factory.addStep(ShellCommand, description=["Building", WithProperties("%s", "MetaImage")],
                     command=["yocto-autobuild", WithProperties("%s", "MetaImage"), "-k"],
                     env=copy.copy(defaultenv),
@@ -578,7 +578,7 @@ f65 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'nightly-external'
 defaultenv['ENABLE_SWABBER'] = 'false'
-defaultenv['SSTATE_DIR'] =    BUILD_PUBLISH_DIR + '/sstate-cache'
+
 defaultenv['REVISION'] = "HEAD"
 makeCheckout(f65)
 if PUBLISH_BUILDS == "True":
@@ -649,7 +649,6 @@ f66 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'nightly-external-toolchain'
 defaultenv['ENABLE_SWABBER'] = 'false'
-defaultenv['SSTATE_DIR'] =    BUILD_PUBLISH_DIR + '/sstate-cache'
 defaultenv['REVISION'] = "HEAD"
 makeCheckout(f66)
 f66.addStep(ShellCommand, 
@@ -705,7 +704,6 @@ f70 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'nightly-internal'
 defaultenv['ENABLE_SWABBER'] = 'false'
-defaultenv['SSTATE_DIR'] = BUILD_PUBLISH_DIR + '/sstate-cache'
 defaultenv['REVISION'] = "HEAD"
 makeCheckout(f70)
 if PUBLISH_BUILDS == "True":
@@ -758,7 +756,7 @@ f170 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'crownbay'
 defaultenv['ENABLE_SWABBER'] = 'false'
-defaultenv['SSTATE_DIR'] =    BUILD_PUBLISH_DIR + '/sstate-cache'
+
 defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'crownbay'
 defaultenv['BSP_REPO'] = "git://git.pokylinux.org/meta-intel.git"
@@ -787,7 +785,7 @@ f175 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'crownbay-noemgd'
 defaultenv['ENABLE_SWABBER'] = 'false'
-defaultenv['SSTATE_DIR'] =    BUILD_PUBLISH_DIR + '/sstate-cache'
+
 defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'crownbay'
 defaultenv['BSP_REPO'] = "git://git.pokylinux.org/meta-intel.git"
@@ -817,7 +815,7 @@ f180 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'emenlow'
 defaultenv['ENABLE_SWABBER'] = 'false'
-defaultenv['SSTATE_DIR'] =    BUILD_PUBLISH_DIR + '/sstate-cache'
+
 defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'emenlow'
 defaultenv['BSP_REPO'] = "git://git.pokylinux.org/meta-intel.git"
@@ -847,7 +845,7 @@ f190 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'n450'
 defaultenv['ENABLE_SWABBER'] = 'false'
-defaultenv['SSTATE_DIR'] =    BUILD_PUBLISH_DIR + '/sstate-cache'
+
 defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'n450'
 defaultenv['BSP_REPO'] = "git://git.pokylinux.org/meta-intel.git"
@@ -876,7 +874,7 @@ f200 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'jasperforest'
 defaultenv['ENABLE_SWABBER'] = 'false'
-defaultenv['SSTATE_DIR'] =    BUILD_PUBLISH_DIR + '/sstate-cache'
+
 defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'jasperforest'
 defaultenv['BSP_REPO'] = "git://git.pokylinux.org/meta-intel.git"
@@ -903,7 +901,6 @@ f210 = factory.BuildFactory()
 defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'sugarbay'
 defaultenv['ENABLE_SWABBER'] = 'false'
-defaultenv['SSTATE_DIR'] = BUILD_PUBLISH_DIR + '/sstate-cache'
 defaultenv['REVISION'] = "HEAD"
 defaultenv['BTARGET'] = 'sugarbay'
 defaultenv['BSP_REPO'] = "git://git.pokylinux.org/meta-intel.git"
