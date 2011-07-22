@@ -54,6 +54,8 @@ defaultenv = {}
 layerid = 0
 SOURCE_DL_DIR = os.environ.get("SOURCE_DL_DIR")
 defaultenv['DL_DIR'] = SOURCE_DL_DIR
+SOURCE_SSTATE_DIR = os.environ.get("SOURCE_SSTATE_DIR")
+defaultenv['SSTATE_DIR'] = SOURCE_SSTATE_DIR
 CLEAN_SOURCE_DIR = os.environ.get("CLEAN_SOURCE_DIR")
 PUBLISH_BUILDS = os.environ.get("PUBLISH_BUILDS")
 PUBLISH_SOURCE_MIRROR = os.environ.get("PUBLISH_SOURCE_MIRROR")
@@ -143,6 +145,7 @@ class createAutoConf(LoggingBuildStep):
             fout.write('PARALLEL_MAKE = "-j 16"\n')
             fout.write('SDKMACHINE ?= "i586"\n')
             fout.write('DL_DIR = ' + defaultenv['DL_DIR']+"\n")
+            fout.write('SSTATE_DIR ?= ' defaultenv['SSTATE_DIR'] + "\n")
             #fout.write('INHERIT += "rm_work"\n')
             fout.write('MACHINE = ' + self.btarget + "\n")
             #fout.write('MIRRORS = ""\n')
@@ -549,8 +552,10 @@ f61.addStep(ShellCommand, description=["Copying", "eclipse", "build", "tools"],
             command="yocto-eclipse-plugin-copy-buildtools standalone", timeout=120)
 f61.addStep(ShellCommand, description=["Building", "eclipse", "plugin"], 
             command="yocto-eclipse-plugin-build standalone", timeout=120)
-f61.addStep(ShellCommand, description=["Copying", "eclipse", "plugin", "output"], 
-            command="yocto-eclipse-plugin-copy-output", timeout=120)
+if PUBLISH_BUILDS == "True":
+    f61.addStep(ShellCommand, description="Copying eclipse plugin output", 
+                command="yocto-autobuild-copy-images eclipse-plugin nightly " +    BUILD_PUBLISH_DIR, 
+                timeout=60)
 b61 = {'name': "eclipse-plugin",
       'slavename': "builder1",
       'builddir': "eclipse-plugin",

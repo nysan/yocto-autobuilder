@@ -20,8 +20,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-WEBDIR=/srv/www/vhosts/autobuilder.pokylinux.org/shared-state-builds
-SSTATE_DIR=/home/pokybuild/sstate-cache
+WEBDIR=$SSTATE_PUBLISH_DIR
+SSTATE_DIR=$SOURCE_SSTATE_DIR
 CURRDIR=`pwd`
 CURRDIR=`readlink -f $CURRDIR`
 

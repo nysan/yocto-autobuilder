@@ -28,7 +28,6 @@ fi
 
 . $HOME/.yoctoautobuild
 
-TARGETDIR=$BUILDOUTPUT
 CURRDIR=`pwd`
 CURRDIR=`readlink -f $CURRDIR`
 
