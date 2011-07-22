@@ -145,7 +145,7 @@ class createAutoConf(LoggingBuildStep):
             fout.write('PARALLEL_MAKE = "-j 16"\n')
             fout.write('SDKMACHINE ?= "i586"\n')
             fout.write('DL_DIR = ' + defaultenv['DL_DIR']+"\n")
-            fout.write('SSTATE_DIR ?= ' defaultenv['SSTATE_DIR'] + "\n")
+            fout.write('SSTATE_DIR ?= ' + defaultenv['SSTATE_DIR']+"\n")
             #fout.write('INHERIT += "rm_work"\n')
             fout.write('MACHINE = ' + self.btarget + "\n")
             #fout.write('MIRRORS = ""\n')
@@ -594,6 +594,7 @@ nightlyBSP(f65, 'mpc8315e-rdb', "poky-lsb")
 nightlyBSP(f65, 'routerstationpro', "poky-lsb")
 runImage(f65, 'qemux86', 'package-index', False)
 makeTarball(f65)
+
 if PUBLISH_BUILDS == "True":
     f65.addStep(ShellCommand, description="Copying IPK feed output", 
                 command="yocto-autobuild-copy-images ipk nightly " +    BUILD_PUBLISH_DIR, 
@@ -607,6 +608,7 @@ f65.addStep(ShellCommand, description="Copying eclipse build tools",
             command="yocto-eclipse-plugin-copy-buildtools combo", timeout=120)
 f65.addStep(ShellCommand, description="Building eclipse plugin", 
             command="yocto-eclipse-plugin-build combo master", timeout=120)
+
 if PUBLISH_BUILDS == "True":
     f65.addStep(ShellCommand, description="Copying eclipse plugin output", 
                 command="yocto-autobuild-copy-images eclipse-plugin nightly " +    BUILD_PUBLISH_DIR, 
@@ -617,12 +619,14 @@ if PUBLISH_BUILDS == "True":
     f65.addStep(ShellCommand, description="Creating CURRENT link", 
                 command="yocto-autobuild-generate-current-link nightly " +    BUILD_PUBLISH_DIR +"/ current", 
                 timeout=20)
+                
 if PUBLISH_SSTATE == "True":
     f65.addStep(ShellCommand, description="Syncing shared state cache to mirror", 
                 command="yocto-update-shared-state-prebuilds", timeout=2400)
     f65.addStep(ShellCommand, description="Copying shared state cache", 
                 command="yocto-autobuild-copy-images sstate nightly " +    BUILD_PUBLISH_DIR, 
                 timeout=8400)
+
 b65 = {'name': "nightly-external",
       'slavename': "builder1",
       'builddir': "nightly-external",
@@ -644,7 +648,8 @@ defaultenv['REVISION'] = "HEAD"
 makeCheckout(f66)
 f65.addStep(createAutoConf(WithProperties("%s/build/build/conf", "workdir")))
 f65.addStep(createBBLayersConf(WithProperties("%s/build/build/conf", "workdir")))
-if PUBLISH_BUILDS == "True":\nrunPreamble(f66)
+if PUBLISH_BUILDS == "True":
+    runPreamble(f66)
 f66.addStep(ShellCommand, description="Setting SDKMACHINE=i686", 
             command="echo 'Setting SDKMACHINE=i686'", timeout=10)
 defaultenv['SDKMACHINE'] = 'i686'
@@ -702,7 +707,8 @@ nightlyQEMU(f70, 'qemux86-64', 'poky-lsb')
 nightlyBSP(f70, 'atom-pc', 'poky-lsb')
 runImage(f70, 'qemux86', 'package-index', False)
 makeTarball(f70)
-if PUBLISH_BUILDS == "True":\nf70.addStep(ShellCommand, description="Copying toolchain-x86-64 build output", 
+if PUBLISH_BUILDS == "True":
+    f70.addStep(ShellCommand, description="Copying toolchain-x86-64 build output", 
                 command="yocto-autobuild-copy-images toolchain nightly " +    BUILD_PUBLISH_DIR , 
                 timeout=600)
     f70.addStep(ShellCommand, description="Copying IPK feed output", 
