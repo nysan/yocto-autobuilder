@@ -192,25 +192,21 @@ def runPreamble(factory):
     factory.addStep(ShellCommand, description=["Setting up build"],
                     command=["yocto-autobuild-preamble"],
                     env=copy.copy(defaultenv),
-                    timeout=14400)      
+                    timeout=14400)
     defaultenv['DEST'] = os.path.join(BUILD_PUBLISH_DIR.strip('"').strip("'"), str(defaultenv['ABTARGET']))
     REV = 1
     DEST_DATE=datetime.datetime.now().strftime("%Y%m%d")
     while os.path.exists(os.path.join(defaultenv['DEST'], DEST_DATE + "-" + str(REV))):
         REV = REV + 1
-    factory.addStep(ShellCommand, description="Setting deploy dir", 
-                    command="echo " + 
-                    DEST_DATE + "-" + str(REV) + 
-                    " deploy-dir",
-                    workdir="build", 
-                    timeout=600)
     defaultenv['DEST']=os.path.join(os.path.join(defaultenv['DEST'], DEST_DATE + "-" + str(REV)))
-    factory.addStep(ShellCommand, description="Creating output dir", 
-                    command=["mkdir", "-p", defaultenv['DEST']], 
+    factory.addStep(ShellCommand, description="Creating output dir",
+                    command=["mkdir", "-p", defaultenv['DEST']],
                     timeout=60)
-    factory.addStep(ShellCommand, description="Marking deploy-dir", 
-                    command=["echo", DEST_DATE + "-" + str(REV), ">>", "deploy-dir"], 
-                    timeout=60)
+    factory.addStep(ShellCommand, description="Setting deploy dir",
+                    command='echo "' +
+                    DEST_DATE + '-' + str(REV) +
+                    '" > deploy-dir',
+                    workdir="build")
 
 def getRepo(step):
     gittype = step.getProperty("repository")
