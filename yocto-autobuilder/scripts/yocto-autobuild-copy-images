@@ -22,10 +22,9 @@
 
 TARGET=$1
 RELEASE_TYPE=$2
-DEPLOY_BASE_DIR=$3
 
 function usage() {
-	echo "Usage: $0 <target> [nightly|weekly|milestone] <deploy-base-directory>"
+	echo "Usage: $0 <target> [nightly|weekly|milestone] "
 	echo "Target can be a qemu architecture for qemu images, 'toolchain'"
 	echo "for toollchain images, 'Yocto-sources' for a Yocto source tarball,"
 	echo "'release' to generate final release filenames,"
@@ -34,7 +33,7 @@ function usage() {
 	exit 1
 }
 
-if [ $# != 3 ]; then
+if [ $# != 2 ]; then
 	usage
 fi
 
@@ -61,11 +60,6 @@ if [[ "$RELEASE_TYPE" != "nightly" && "$RELEASE_TYPE" != "weekly" &&
 	usage
 fi
 
-if [ ! -d "$DEPLOY_BASE_DIR" ]; then
-	echo "Error: deployment base directory '$DEPLOY_BASE_DIR' does not exist!"
-	usage
-fi
-
 if [ ! -d ./build/tmp/deploy/ ]; then
 	CWD=`pwd`
 	echo "Error: I do not see a build/tmp/deploy/ directory to work from!"
@@ -74,13 +68,7 @@ if [ ! -d ./build/tmp/deploy/ ]; then
 fi
 
 # Retrieve the deployment path which was set by yocto-autobuild-preamble
-DEPLOY_BASE_DIR="$DEPLOY_BASE_DIR/$RELEASE_TYPE/"
 DEPLOY_DIR=`cat deploy-dir`
-if [ -z "$DEPLOY_DIR" ]; then
-	echo "Error: Cannot read deployment directory from 'deploydir' file"
-	echo "This file should have been created by yocto-autobuild-preamble"
-	exit 1
-fi
 
 # The "weekly" option to this script is run as a final step on the
 # nightly buildset. If the day of the week is Wednesday, it simply
@@ -105,7 +93,7 @@ if [ "x$RELEASE_TYPE" = "xweekly" ]; then
 	fi
 fi
 
-DEST="$DEPLOY_BASE_DIR$DEPLOY_DIR"
+DEST="$DEPLOY_DIR"
 if [ ! -d "$DEST" ]; then
 	echo "Error: deployment directory '$DEST' does not exist"
 	exit 1

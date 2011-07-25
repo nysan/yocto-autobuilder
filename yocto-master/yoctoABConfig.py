@@ -204,7 +204,7 @@ def runPreamble(factory):
                     timeout=60)
     factory.addStep(ShellCommand, description="Setting deploy dir",
                     command='echo "' +
-                    DEST_DATE + '-' + str(REV) +
+                    defaultenv['DEST'] +
                     '" > deploy-dir',
                     workdir="build")
 
@@ -255,7 +255,7 @@ def makeTarball(factory):
     if PUBLISH_BUILDS == "True":
         factory.addStep(ShellCommand, description="Copying release tarball", 
                         command=["yocto-autobuild-copy-images", "yocto-sources", 
-                        "nightly",    BUILD_PUBLISH_DIR], 
+                        "nightly"], 
                         timeout=60)
 
 def makeLayerTarball(factory):
@@ -263,9 +263,10 @@ def makeLayerTarball(factory):
                     command=["yocto-autobuild-generate-sources-tarball", "nightly", "1.0pre",
                     WithProperties("%s", "layer0branch")], timeout=120)
     if PUBLISH_BUILDS == "True":
-        factory.addStep(ShellCommand, description="Copying release tarball",
-                        command=["yocto-autobuild-copy-images", "yocto-sources", "nightly", 
-                        BUILD_PUBLISH_DIR + str(defaultenv['ABTARGET'])], timeout=60)
+        factory.addStep(ShellCommand, description="Copying release tarball", 
+                        command=["yocto-autobuild-copy-images", "yocto-sources", 
+                        "nightly"], 
+                        timeout=60)
 
 def doEMGDTest(step):
     buildername = step.getProperty("buildername")
@@ -358,7 +359,7 @@ def nightlyQEMU(factory, machine, distrotype):
     defaultenv['DISTRO'] = 'poky'
     factory.addStep(ShellCommand, description="Copying " + machine + " build output", 
                     command="yocto-autobuild-copy-images " + 
-                    machine + " nightly " +    BUILD_PUBLISH_DIR, 
+                    machine + " nightly ",
                     timeout=600)
 
 def nightlyBSP(factory, machine, distrotype):
@@ -371,7 +372,7 @@ def nightlyBSP(factory, machine, distrotype):
     defaultenv['DISTRO'] = 'poky'
     factory.addStep(ShellCommand, description="Copying " + machine + " build output", 
                     command="yocto-autobuild-copy-images " + 
-                    machine + " nightly " +    BUILD_PUBLISH_DIR, 
+                    machine + " nightly ", 
                     timeout=600)
                     
 def setBSPLayerRepo(step):
@@ -399,28 +400,22 @@ def buildBSPLayer(factory, distrotype, btarget):
             factory.addStep(ShellCommand, description="Copying " + 
                             str(defaultenv['ABTARGET']) + " build output", 
                             command=["yocto-autobuild-copy-images", 
-                            defaultenv['BTARGET'], "nightly", 
-                            BUILD_PUBLISH_DIR + str(defaultenv['ABTARGET'])]) 
+                            defaultenv['BTARGET'], "nightly"]) 
             makeLayerTarball(factory)
             factory.addStep(ShellCommand, description="Copying RPM feed output", 
-                            command=["yocto-autobuild-copy-images", "rpm", "nightly", 
-                            BUILD_PUBLISH_DIR + str(defaultenv['ABTARGET'])]) 
+                            command=["yocto-autobuild-copy-images", "rpm", "nightly"]) 
             factory.addStep(ShellCommand, description="Copying IPK feed output",
-                            command=["yocto-autobuild-copy-images", "ipk", "nightly",
-                            BUILD_PUBLISH_DIR + str(defaultenv['ABTARGET'])]) 
+                            command=["yocto-autobuild-copy-images", "ipk", "nightly"]) 
     elif distrotype == "poky-lsb":
         defaultenv['DISTRO'] = 'poky-lsb'
         runImage(factory, btarget, 'core-image-lsb-live core-image-lsb-sdk-live', True)
         if PUBLISH_BUILDS == "True":
             factory.addStep(ShellCommand, description="Copying " + str(defaultenv['ABTARGET']) + " build output", 
-                            command=["yocto-autobuild-copy-images", defaultenv['BTARGET'], "nightly", 
-                            BUILD_PUBLISH_DIR + str(defaultenv['ABTARGET'])]) 
+                            command=["yocto-autobuild-copy-images", defaultenv['BTARGET'], "nightly"]) 
             factory.addStep(ShellCommand, description="Copying RPM feed output", 
-                            command=["yocto-autobuild-copy-images", "rpm-lsb", "nightly", 
-                            BUILD_PUBLISH_DIR + str(defaultenv['ABTARGET'])]) 
+                            command=["yocto-autobuild-copy-images", "rpm-lsb", "nightly"]) 
             factory.addStep(ShellCommand, description="Copying IPK feed output",
-                            command=["yocto-autobuild-copy-images", "ipk-lsb", "nightly",
-                            BUILD_PUBLISH_DIR + str(defaultenv['ABTARGET'])]) 
+                            command=["yocto-autobuild-copy-images", "ipk-lsb", "nightly"]) 
 
 ################################################################################
 #
@@ -546,7 +541,7 @@ f61.addStep(ShellCommand, description=["Building", "eclipse", "plugin"],
             command="yocto-eclipse-plugin-build standalone", timeout=120)
 if PUBLISH_BUILDS == "True":
     f61.addStep(ShellCommand, description="Copying eclipse plugin output", 
-                command="yocto-autobuild-copy-images eclipse-plugin nightly " +    BUILD_PUBLISH_DIR, 
+                command="yocto-autobuild-copy-images eclipse-plugin nightly ", 
                 timeout=60)
 b61 = {'name': "eclipse-plugin",
       'slavename': "builder1",
@@ -588,10 +583,10 @@ makeTarball(f65)
 
 if PUBLISH_BUILDS == "True":
     f65.addStep(ShellCommand, description="Copying IPK feed output", 
-                command="yocto-autobuild-copy-images ipk nightly " +    BUILD_PUBLISH_DIR, 
+                command="yocto-autobuild-copy-images ipk nightly ", 
                 timeout=1800)
     f65.addStep(ShellCommand, description="Copying RPM feed output", 
-                command="yocto-autobuild-copy-images rpm nightly " +    BUILD_PUBLISH_DIR, 
+                command="yocto-autobuild-copy-images rpm nightly ", 
                 timeout=1800)
 f65.addStep(ShellCommand, description="Cloning eclipse-poky git repo", 
             command="yocto-eclipse-plugin-clone-repo", timeout=300)
@@ -602,20 +597,20 @@ f65.addStep(ShellCommand, description="Building eclipse plugin",
 
 #if PUBLISH_BUILDS == "True":
 #    f65.addStep(ShellCommand, description="Copying eclipse plugin output", 
-#                command="yocto-autobuild-copy-images eclipse-plugin nightly " +    BUILD_PUBLISH_DIR, 
+#                command="yocto-autobuild-copy-images eclipse-plugin nightly ", 
 #                timeout=60)
 #    f65.addStep(ShellCommand, description="Copying buildstatistics output", 
-#                command="yocto-autobuild-copy-images buildstats nightly " +    BUILD_PUBLISH_DIR, 
+#                command="yocto-autobuild-copy-images buildstats nightly ", 
 #                timeout=600)
 #    f65.addStep(ShellCommand, description="Creating CURRENT link", 
-#                command="yocto-autobuild-generate-current-link nightly " +    BUILD_PUBLISH_DIR +"/ current", 
+#                command="yocto-autobuild-generate-current-link nightly ", 
 #               timeout=20)
                 
 if PUBLISH_SSTATE == "True":
     f65.addStep(ShellCommand, description="Syncing shared state cache to mirror", 
                 command="yocto-update-shared-state-prebuilds", timeout=2400)
     f65.addStep(ShellCommand, description="Copying shared state cache", 
-                command="yocto-autobuild-copy-images sstate nightly " +    BUILD_PUBLISH_DIR, 
+                command="yocto-autobuild-copy-images sstate nightly ", 
                 timeout=8400)
 
 b65 = {'name': "nightly-external",
@@ -654,10 +649,10 @@ runImage(f66, 'qemuppc', 'meta-toolchain-gmae', False)
 runImage(f66, 'qemux86', 'package-index', False)
 if PUBLISH_BUILDS == "True":
     f66.addStep(ShellCommand, description="Copying toolchain-x86-64 build output", 
-                command="yocto-autobuild-copy-images toolchain nightly " +    BUILD_PUBLISH_DIR , 
+                command="yocto-autobuild-copy-images toolchain nightly " , 
                 timeout=600)
     f66.addStep(ShellCommand, description="Copying buildstatistics output", 
-                command="yocto-autobuild-copy-images buildstats nightly " +    BUILD_PUBLISH_DIR , 
+                command="yocto-autobuild-copy-images buildstats nightly ", 
                 timeout=600)
     f66.addStep(ShellCommand, description="Creating CURRENT link", 
                 command="yocto-autobuild-generate-current-link nightly " +    BUILD_PUBLISH_DIR + "/ current", 
@@ -696,26 +691,26 @@ runImage(f70, 'qemux86', 'package-index', False)
 makeTarball(f70)
 if PUBLISH_BUILDS == "True":
     f70.addStep(ShellCommand, description="Copying toolchain-x86-64 build output", 
-                command="yocto-autobuild-copy-images toolchain nightly " +    BUILD_PUBLISH_DIR , 
+                command="yocto-autobuild-copy-images toolchain nightly ", 
                 timeout=600)
     f70.addStep(ShellCommand, description="Copying IPK feed output", 
-                command="yocto-autobuild-copy-images ipk nightly " +    BUILD_PUBLISH_DIR , 
+                command="yocto-autobuild-copy-images ipk nightly ", 
                 timeout=1800)
     f70.addStep(ShellCommand, description="Copying RPM feed output", 
-                command="yocto-autobuild-copy-images rpm nightly " +    BUILD_PUBLISH_DIR , 
+                command="yocto-autobuild-copy-images rpm nightly ", 
                 timeout=1800)
     f70.addStep(ShellCommand, description="Copying buildstatistics output", 
-                command="yocto-autobuild-copy-images buildstats nightly " +    BUILD_PUBLISH_DIR , 
+                command="yocto-autobuild-copy-images buildstats nightly ", 
                 timeout=1800)
 if PUBLISH_SSTATE == "True":
     f70.addStep(ShellCommand, description="Syncing shared state cache to mirror", 
                 command="yocto-update-shared-state-prebuilds", timeout=2400)
     f70.addStep(ShellCommand, description="Copying shared state cache", 
-                command="yocto-autobuild-copy-images sstate nightly " +    BUILD_PUBLISH_DIR , 
+                command="yocto-autobuild-copy-images sstate nightly ", 
                 timeout=8400)
 if PUBLISH_BUILDS == "True":
     f70.addStep(ShellCommand, description="Creating CURRENT link", 
-                command="yocto-autobuild-generate-current-link nightly " +    BUILD_PUBLISH_DIR + "/ current", 
+                command="yocto-autobuild-generate-current-link nightly ", 
                 timeout=20)
 b70 = {'name': "nightly-internal",
       'slavename': "builder1",
