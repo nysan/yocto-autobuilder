@@ -193,25 +193,24 @@ def runPreamble(factory):
                     command=["yocto-autobuild-preamble"],
                     env=copy.copy(defaultenv),
                     timeout=14400)      
-    if PUBLISH_BUILDS == "True":    
-        defaultenv['DEST'] = os.path.join(BUILD_PUBLISH_DIR.strip('"').strip("'"), str(defaultenv['ABTARGET']))
-        REV = 1
-        DEST_DATE=datetime.datetime.now().strftime("%Y%m%d")
-        while os.path.exists(os.path.join(defaultenv['DEST'], DEST_DATE + "-" + str(REV))):
-            REV = REV + 1
-        factory.addStep(ShellCommand, description="Setting deploy dir", 
-                        command="echo " + 
-                        DEST_DATE + "-" + str(REV) + 
-                        " deploy-dir",
-                        workdir="build", 
-                        timeout=600)
-        defaultenv['DEST']=os.path.join(os.path.join(defaultenv['DEST'], DEST_DATE + "-" + str(REV)))
-        factory.addStep(ShellCommand, description="Creating output dir", 
-                        command=["mkdir", "-p", defaultenv['DEST']], 
-                        timeout=60)
-        factory.addStep(ShellCommand, description="Marking deploy-dir", 
-                        command=["echo", DEST_DATE + "-" + str(REV), ">>", "deploy-dir"], 
-                        timeout=60)
+    defaultenv['DEST'] = os.path.join(BUILD_PUBLISH_DIR.strip('"').strip("'"), str(defaultenv['ABTARGET']))
+    REV = 1
+    DEST_DATE=datetime.datetime.now().strftime("%Y%m%d")
+    while os.path.exists(os.path.join(defaultenv['DEST'], DEST_DATE + "-" + str(REV))):
+        REV = REV + 1
+    factory.addStep(ShellCommand, description="Setting deploy dir", 
+                    command="echo " + 
+                    DEST_DATE + "-" + str(REV) + 
+                    " deploy-dir",
+                    workdir="build", 
+                    timeout=600)
+    defaultenv['DEST']=os.path.join(os.path.join(defaultenv['DEST'], DEST_DATE + "-" + str(REV)))
+    factory.addStep(ShellCommand, description="Creating output dir", 
+                    command=["mkdir", "-p", defaultenv['DEST']], 
+                    timeout=60)
+    factory.addStep(ShellCommand, description="Marking deploy-dir", 
+                    command=["echo", DEST_DATE + "-" + str(REV), ">>", "deploy-dir"], 
+                    timeout=60)
 
 def getRepo(step):
     gittype = step.getProperty("repository")
@@ -641,15 +640,9 @@ defaultenv['ABTARGET'] = 'nightly-external-toolchain'
 defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['REVISION'] = "HEAD"
 makeCheckout(f66)
-f66.addStep(ShellCommand, 
-            workdir="build",
-            description=["Sourcing oe-init-build-env"],
-            command=["source", "oe-init-build-env"],
-            env=copy.copy(defaultenv),
-            timeout=14400)                             
+runPreamble(f66)                   
 f66.addStep(createAutoConf(workdir=WithProperties("%s", "workdir"), btarget="qemux86"))
 f66.addStep(createBBLayersConf(workdir=WithProperties("%s", "workdir"), btarget="qemux86", bsplayer=False))
-runPreamble(f66)
 f66.addStep(ShellCommand, description="Setting SDKMACHINE=i686", 
             command="echo 'Setting SDKMACHINE=i686'", timeout=10)
 defaultenv['SDKMACHINE'] = 'i686'
