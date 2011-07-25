@@ -189,24 +189,29 @@ def runSanityTest(factory, machine, image):
                     timeout=2400)
 
 def runPreamble(factory):
-    defaultenv['DEST'] = os.path.join(BUILD_PUBLISH_DIR.strip('"').strip("'"), str(defaultenv['ABTARGET']))
-    REV = 1
-    DEST_DATE=datetime.datetime.now().strftime("%Y%m%d")
-    while os.path.exists(os.path.join(defaultenv['DEST'], DEST_DATE + "-" + str(REV))):
-        REV = REV + 1
-    factory.addStep(ShellCommand, description="Setting deploy dir", 
-                    command="echo " + 
-                    DEST_DATE + "-" + str(REV) + 
-                    " deploy-dir",
-                    workdir="build", 
-                    timeout=600)
-    defaultenv['DEST']=os.path.join(os.path.join(defaultenv['DEST'], DEST_DATE + "-" + str(REV)))
-    factory.addStep(ShellCommand, description="Creating output dir", 
-                    command=["mkdir", "-p", defaultenv['DEST']], 
-                    timeout=60)
-    factory.addStep(ShellCommand, description="Marking deploy-dir", 
-                    command=["echo", DEST_DATE + "-" + str(REV), ">>", "deploy-dir"], 
-                    timeout=60)
+    factory.addStep(ShellCommand, description=["Setting up build"],
+                    command=["yocto-autobuild-preamble"],
+                    env=copy.copy(defaultenv),
+                    timeout=14400)      
+    if PUBLISH_BUILDS == "True":    
+        defaultenv['DEST'] = os.path.join(BUILD_PUBLISH_DIR.strip('"').strip("'"), str(defaultenv['ABTARGET']))
+        REV = 1
+        DEST_DATE=datetime.datetime.now().strftime("%Y%m%d")
+        while os.path.exists(os.path.join(defaultenv['DEST'], DEST_DATE + "-" + str(REV))):
+            REV = REV + 1
+        factory.addStep(ShellCommand, description="Setting deploy dir", 
+                        command="echo " + 
+                        DEST_DATE + "-" + str(REV) + 
+                        " deploy-dir",
+                        workdir="build", 
+                        timeout=600)
+        defaultenv['DEST']=os.path.join(os.path.join(defaultenv['DEST'], DEST_DATE + "-" + str(REV)))
+        factory.addStep(ShellCommand, description="Creating output dir", 
+                        command=["mkdir", "-p", defaultenv['DEST']], 
+                        timeout=60)
+        factory.addStep(ShellCommand, description="Marking deploy-dir", 
+                        command=["echo", DEST_DATE + "-" + str(REV), ">>", "deploy-dir"], 
+                        timeout=60)
 
 def getRepo(step):
     gittype = step.getProperty("repository")
@@ -312,11 +317,7 @@ def fuzzyBuild(factory):
                                  WithProperties("%s", "FuzzSDK")],
                     command=["echo", WithProperties("%s", "FuzzImage"),  
                              WithProperties("%s", "FuzzArch"), 
-                             WithProperties("%s", "FuzzSDK")]))
-    factory.addStep(ShellCommand, description=["Setting up build"],
-                    command=["yocto-autobuild-preamble"],
-                    env=copy.copy(defaultenv),
-                    timeout=14400)                                                  
+                             WithProperties("%s", "FuzzSDK")]))                                    
     factory.addStep(createAutoConf(workdir=WithProperties("%s", "workdir"), btarget=WithProperties("%s", "FuzzArch")))
     factory.addStep(createBBLayersConf(workdir=WithProperties("%s", "workdir"), btarget=WithProperties("%s", "FuzzArch"), bsplayer=False))
     factory.addStep(ShellCommand, 
@@ -506,8 +507,7 @@ defaultenv['SDKMACHINE'] = 'i686'
 f22.addStep(ShellCommand, description=["Setting", "ENABLE_SWABBER"], 
             command="echo 'Setting ENABLE_SWABBER'", timeout=10)
 defaultenv['ENABLE_SWABBER'] = 'true'
-if PUBLISH_BUILDS == "True":
-    runPreamble(f22)
+runPreamble(f22)
 defaultenv['SDKMACHINE'] = 'i686'
 runImage(f22, 'qemux86-64', 'meta-toolchain-gmae', False)
 f22.addStep(ShellCommand, description="Setting SDKMACHINE=x86_64", 
@@ -572,8 +572,7 @@ defaultenv['ENABLE_SWABBER'] = 'false'
 
 defaultenv['REVISION'] = "HEAD"
 makeCheckout(f65)
-if PUBLISH_BUILDS == "True":
-    runPreamble(f65)
+runPreamble(f65)
 nightlyQEMU(f65, 'qemux86', 'poky')
 nightlyQEMU(f65, 'qemuarm', 'poky')
 nightlyQEMU(f65, 'qemumips', 'poky')
@@ -650,8 +649,7 @@ f66.addStep(ShellCommand,
             timeout=14400)                             
 f66.addStep(createAutoConf(workdir=WithProperties("%s", "workdir"), btarget="qemux86"))
 f66.addStep(createBBLayersConf(workdir=WithProperties("%s", "workdir"), btarget="qemux86", bsplayer=False))
-if PUBLISH_BUILDS == "True":
-    runPreamble(f66)
+runPreamble(f66)
 f66.addStep(ShellCommand, description="Setting SDKMACHINE=i686", 
             command="echo 'Setting SDKMACHINE=i686'", timeout=10)
 defaultenv['SDKMACHINE'] = 'i686'
@@ -697,8 +695,7 @@ defaultenv['ABTARGET'] = 'nightly-internal'
 defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['REVISION'] = "HEAD"
 makeCheckout(f70)
-if PUBLISH_BUILDS == "True":
-    runPreamble(f70)
+runPreamble(f70)
 nightlyQEMU(f70, 'qemux86', 'poky')
 nightlyQEMU(f70, 'qemux86-64', 'poky')
 nightlyBSP(f70, 'atom-pc', 'poky')

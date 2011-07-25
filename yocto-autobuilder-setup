@@ -73,8 +73,6 @@ if [ -n "${config_check:+x}" ]; then
     echo ""
     echo "#########################################################################"
     echo ""
-    echo " Creating deploy directory at: /tmp/yocto-autobuilder/deploy "
-    mkdir -p /tmp/yocto-autobuilder/deploy
     echo " Please modify ${PWD}/conf/autobuilder.conf if you wish to specify "
     echo " a different location in which to publish build artifacts, etc."
     echo ""

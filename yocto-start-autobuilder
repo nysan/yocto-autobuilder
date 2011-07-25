@@ -58,7 +58,13 @@ if os.path.isfile(os.path.join(AB_BASE, ".setupdone")):
         for name, value in parser.items(section_name):
             print ' Setting %s to %s' % (name.upper(), value)
             os.environ[name.upper()] = value
-            
+            if os.environ[name.upper()].endswith("_DIR"):
+                if not os.path.exists(value):
+                    try:
+                        os.mkdirs(value)
+                        print ' Creating %s at %s' % (name.upper(), value)
+                    except:
+                        pass            
     print
 
     if sys.argv[1] == "master" or sys.argv[1] == "both":
