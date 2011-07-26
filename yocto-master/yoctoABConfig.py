@@ -293,9 +293,7 @@ def setRandom(step):
                                                   'core-image-lsb-sdk', 
                                                   'core-image-lsb-qt3']))
     step.setProperty("FuzzSDK", random.choice( ['i686', 'x86-64'] ))
-    defaultenv['MACHINE'] = step.getProperty("FuzzArch")
     imageType = step.getProperty("FuzzImage")
-    defaultenv['SDKMACHINE'] = step.getProperty("FuzzSDK")
     
     if imageType.endswith("lsb"):
         step.setProperty("distro", "poky-lsb")  
@@ -317,6 +315,8 @@ def fuzzyBuild(factory):
                              WithProperties("%s", "FuzzSDK")],
                      env=copy.copy(defaultenv)))                                   
     defaultenv['DISTRO'] = WithProperties("%s", "distro")
+    defaultenv['MACHINE'] = WithProperties("%s", "FuzzArch")
+    defaultenv['SDKMACHINE'] = WithProperties("%s", "FuzzSDK")
     factory.addStep(createAutoConf(workdir=WithProperties("%s", "workdir"), btarget=WithProperties("%s", "FuzzArch")))
     factory.addStep(createBBLayersConf(workdir=WithProperties("%s", "workdir"), btarget=WithProperties("%s", "FuzzArch"), bsplayer=False))
     factory.addStep(ShellCommand, 
