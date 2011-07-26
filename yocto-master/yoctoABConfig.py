@@ -296,10 +296,11 @@ def setRandom(step):
     defaultenv['MACHINE'] = step.getProperty("FuzzArch")
     imageType = step.getProperty("FuzzImage")
     defaultenv['SDKMACHINE'] = step.getProperty("FuzzSDK")
-    if "lsb" in imageType:
-        defaultenv['DISTRO'] = "poky-lsb"
+    
+    if imageType.endswith("lsb"):
+        step.setProperty("distro", "poky-lsb")  
     else:
-        defaultenv['DISTRO'] = "poky"
+        step.setProperty("distro", "poky")
     return True
 
 def fuzzyBuild(factory):
@@ -313,7 +314,9 @@ def fuzzyBuild(factory):
                                  WithProperties("%s", "FuzzSDK")],
                     command=["echo", WithProperties("%s", "FuzzImage"),  
                              WithProperties("%s", "FuzzArch"), 
-                             WithProperties("%s", "FuzzSDK")]))                                    
+                             WithProperties("%s", "FuzzSDK")],
+                     env=copy.copy(defaultenv)))                                   
+    defaultenv['DISTRO'] = WithProperties("%s", "distro")
     factory.addStep(createAutoConf(workdir=WithProperties("%s", "workdir"), btarget=WithProperties("%s", "FuzzArch")))
     factory.addStep(createBBLayersConf(workdir=WithProperties("%s", "workdir"), btarget=WithProperties("%s", "FuzzArch"), bsplayer=False))
     factory.addStep(ShellCommand, 
