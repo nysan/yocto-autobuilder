@@ -67,28 +67,32 @@ if [ -n "${config_check:+x}" ]; then
     sed -i "s/<PASS>/$password/g" ${PWD}/yocto-slave/buildbot.tac
     echo ""
     echo " If you wish to use your own generated username and password please "
-    echo " modify the above files as needed. Please see the README and:"
-    echo " ${PWD}/autobuilder_examples "
-    echo " directory for more information. "
+    echo " modify the above files as needed. Please see the README for more "
+    echo " information. "
     echo ""
     echo "#########################################################################"
     echo ""
     echo " Please modify ${PWD}/conf/autobuilder.conf if you wish to specify "
     echo " a different location in which to publish build artifacts, etc."
     echo ""
+    echo "#########################################################################"
+    echo ""
+    echo " Ready to start the yocto autobuilder."
+    echo ""
+    echo " The yocto-autobuilder runs buildbot 0.8.4p1 with some modifications to "
+    echo " web-templating. For a full rundown on changes, read the LICENSE and "
+    echo " README files " 
+    echo ""
+    echo "#########################################################################"
+    buildbot upgrade-master ${PWD}/yocto-master
+    ################
+    #
+    # We touch this because we know they've at least run this once
+    #
+    ################
+    touch ${PWD}/.setupdone
 fi
-echo "#########################################################################"
-echo ""
-echo " Ready to start the yocto autobuilder."
-echo ""
-echo " The yocto-autobuilder runs buildbot 0.8.4p1 with some modifications to "
-echo " web-templating. For a full rundown on changes, read the LICENSE and "
-echo " README files " 
-echo ""
-echo "#########################################################################"
-echo ""
-export BUILD_PUBLISH_DIR=/tmp/yocto-autobuilder/builds
-buildbot upgrade-master ${PWD}/yocto-master
+
 echo " To start the autobuilder:"
 echo " ./yocto-start-autobuilder <slave|master|both>"
 echo ""
@@ -96,10 +100,4 @@ echo " To stop the autobuilder:"
 echo " ./yocto-stop-autobuilder <slave|master|both>"
 echo ""
 
-################
-#
-# We touch this because we know they've at least run this once
-#
-################
-touch ${PWD}/.setupdone
 
