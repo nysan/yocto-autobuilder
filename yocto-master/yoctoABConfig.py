@@ -400,7 +400,7 @@ def runBSPLayerPostamble(factory):
 def buildBSPLayer(factory, distrotype, btarget):
     if distrotype == "poky":
         defaultenv['DISTRO'] = 'poky'
-        runImage(factory, btarget, 'core-image-sato-live core-image-sato-sdk-live core-image-minimal-live', True)
+        runImage(factory, btarget, 'core-image-sato core-image-sato-sdk core-image-minimal', True)
         if PUBLISH_BUILDS == "True":
             factory.addStep(ShellCommand, description="Copying " + 
                             str(defaultenv['ABTARGET']) + " build output", 
@@ -413,7 +413,7 @@ def buildBSPLayer(factory, distrotype, btarget):
                             command=["yocto-autobuild-copy-images", "ipk", "nightly"]) 
     elif distrotype == "poky-lsb":
         defaultenv['DISTRO'] = 'poky-lsb'
-        runImage(factory, btarget, 'core-image-lsb-live core-image-lsb-sdk-live', True)
+        runImage(factory, btarget, 'core-image-lsb core-image-lsb-sdk', True)
         if PUBLISH_BUILDS == "True":
             factory.addStep(ShellCommand, description="Copying " + str(defaultenv['ABTARGET']) + " build output", 
                             command=["yocto-autobuild-copy-images", defaultenv['BTARGET'], "nightly"]) 
