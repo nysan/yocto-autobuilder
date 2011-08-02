@@ -57,7 +57,7 @@ if os.path.isfile(os.path.join(AB_BASE, ".setupdone")):
     for section_name in parser.sections():
         for name, value in parser.items(section_name):
             print ' Setting %s to %s' % (name.upper(), value)
-            os.environ[name.upper()] = value
+            os.environ[name.upper()] = value.strip('"')
             if os.environ[name.upper()].endswith("_DIR"):
                 if not os.path.exists(value):
                     try:
