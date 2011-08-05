@@ -171,6 +171,7 @@ def runBSPLayerPreamble(factory):
 def runImage(factory, machine, image, bsplayer):
     factory.addStep(ShellCommand, description=["Setting up build"],
                     command=["yocto-autobuild-preamble"],
+                    workdir="build", 
                     env=copy.copy(defaultenv),
                     timeout=14400)                            
     factory.addStep(createAutoConf(workdir=WithProperties("%s", "workdir"), btarget=machine))
@@ -191,10 +192,6 @@ def runSanityTest(factory, machine, image):
                     timeout=2400)
 
 def runPreamble(factory):
-    factory.addStep(ShellCommand, description=["Setting up build"],
-                    command=["yocto-autobuild-preamble"],
-                    env=copy.copy(defaultenv),
-                    timeout=14400)
     defaultenv['DEST'] = os.path.join(BUILD_PUBLISH_DIR.strip('"').strip("'"), str(defaultenv['ABTARGET']))
     REV = 1
     DEST_DATE=datetime.datetime.now().strftime("%Y%m%d")
@@ -343,6 +340,7 @@ def metaBuild(factory):
     runPreamble(factory)
     factory.addStep(ShellCommand, description=["Setting up build"],
                     command=["yocto-autobuild-preamble"],
+                    workdir="build", 
                     env=copy.copy(defaultenv),
                     timeout=14400)                                                 
     factory.addStep(createAutoConf(workdir=WithProperties("%s", "workdir"), btarget=WithProperties("%s", "machine")))
