@@ -1,4 +1,3 @@
-
 import os
 
 from twisted.application import service
@@ -30,7 +29,7 @@ except ImportError:
 buildmaster_host = 'localhost'
 port = 9989
 slavename = 'builder1'
-passwd = 'XUYyI7AdJ'
+passwd = '<PASS>'
 keepalive = 600
 usepty = 0
 umask = 022
