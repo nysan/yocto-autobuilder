@@ -1,0 +1,86 @@
+#!/usr/bin/env python
+#
+# Yocto Build Server Start Script
+# Elizabeth Flanagan <elizabeth.flanagan@intel.com>
+#
+##
+# Copyright (C) 2011 Intel Corp.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+import os, sys, optparse, subprocess
+from socket import gethostname
+import ConfigParser
+
+usage  = """%prog [options] master|slave|both   
+
+Start a yocto buildbot autobuilder instance.
+"""
+
+parser = optparse.OptionParser(usage=usage)
+options, args = parser.parse_args( sys.argv )
+
+if len(args) != 2 or (sys.argv[1] != "both" and sys.argv[1] != "master" and sys.argv[1] != "slave") :
+    parser.error("""
+    You must specify if you wish to start master, slave or both. 
+   
+    """ + usage )
+AB_BASE=os.path.dirname(os.path.abspath(sys.argv[0]))
+
+################################################################################
+#
+# We need to check if they've run setup before. If they haven't, we fail out.
+#
+################################################################################
+if os.path.isfile(os.path.join(AB_BASE, ".setupdone")):
+    
+    from ConfigParser import SafeConfigParser
+ 
+    parser = SafeConfigParser()
+    parser.read('conf/autobuilder.conf')
+    print
+    print "Reading " + os.path.join(AB_BASE, "conf/autobuilder.conf")
+    print 
+
+    for section_name in parser.sections():
+        for name, value in parser.items(section_name):
+            print ' Setting %s to %s' % (name.upper(), value)
+            os.environ[name.upper()] = value.strip('"')
+            if os.environ[name.upper()].endswith("_DIR"):
+                if not os.path.exists(value):
+                    try:
+                        os.mkdirs(value)
+                        print ' Creating %s at %s' % (name.upper(), value)
+                    except:
+                        pass            
+    print
+
+    if sys.argv[1] == "master" or sys.argv[1] == "both":
+
+       os.chdir(os.path.join(AB_BASE, "yocto-master"))
+       subprocess.call(["make", "reconfig"])
+       os.chdir(AB_BASE)
+
+    if sys.argv[1] == "slave" or sys.argv[1] == "both":
+
+       os.chdir(os.path.join(AB_BASE, "yocto-slave"))
+       subprocess.call(["make", "reconfig"])
+       os.chdir(AB_BASE)
+else:
+    print "You have not sourced ./yocto-autobuilder-setup. Please do so first!"
+    print ""
+    print " . ./yocto-autobuilder-setup"
+    sys.exit(1)
+

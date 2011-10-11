@@ -2,18 +2,80 @@ Setting up a Yocto Autobuilder Build Cluster
 ============================================
 
 A lot of the autobuilder setup is individual to the circumstances of the
-user. 
+user. This document outlines some of the configuration options/files, 
+autobuilder setup gotchas and general autobuilder best practices.
+
+Setup
+============
+
+Setting the Yocto autobuilder up to run headless sanity tests
+
+If you plan on using the yocto autobuilder to run sanity testing, you will need
+to:
+
+1. Install tight-vnc client and server.
+
+2. Set up tap devs by running poky/scripts/runqemu-setup-tapdev
+
+3. Add "xterm*vt100*geometry: 80x50+10+10" to .Xdefaults
+
+4. Setup and start vnc session as the autobuilder user.
+
+5. You MUST manually connect to the vnc session at least once prior to running
+   a qemu sanity test (Something is getting set during the initial connection 
+   that I haven't figured out yet. Manually connecting seems to set up the 
+   session correctly.)
+
+
+Settings
+============
+
+File: conf/autobuilder.conf settings
+
+PublishSettings
+---------------
+
+PUBLISH_BUILDS:
+Determins if build artifacts are copied into a release directory. Generally not
+used for developer autobuilders, it's quite useful for production autobuilders.
+
+PUBLISH_SOURCE_MIRROR:
+If True, use BB_GENERATE_MIRROR_TARBALLS = "1" in auto.conf
+
+PUBLISH_SSTATE:
+If True, use to sync sstate to sstate mirror
+
+SSTATE_PUBLISH_DIR:
+Directory LSB_SSTATE_DIR and SOURCE_SSTATE_DIR are copied to if 
+PUBLISH_SSTATE = True
+
+SOURCE_PUBLISH_DIR:
+Directory sources are copied to if PUBLISH_SOURCE_MIRROR = True
+
+BUILD_PUBLISH_DIR:
+Directory build artifacts are copied to if PUBLISH_BUILDS = True
+
+BuildSettings
+-------------
+SOURCE_DL_DIR:
+autobuilder slave's DL_DIR
+
+SOURCE_SSTATE_DIR: 
+SState directory for non-lsb builds
+
+LSB_SSTATE_DIR = "/tmp/yocto-autobuilder/lsb-sstate"
+SState directory for lsb builds
 
 Files used for Yocto-Autobuilder Configuration
 ----------------------------------------------
 Name: conf/autobuilder.conf 
 Purpose:
-
 This file is used to set autobuilder wide parameters, like where various build
-artifacts are published to, as well as DL_DIR, or if build artifacts should be
+artifacts are published to, DL_DIR, SSTATE_DIR or if build artifacts should be
 published (needed for production autobuilders, not needed for desktop builders)
 
-
-
-yocto-master/yoctoABConfig.py
+Name: yocto-master/yoctoABConfig.py
+Purpose:
+This is the main yocto autobuilder config. Usually, there is no reason most end
+users should modify this.
 
