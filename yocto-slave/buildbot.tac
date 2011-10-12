@@ -36,6 +36,6 @@ umask = 022
 maxdelay = 300
 
 s = BuildSlave(buildmaster_host, port, slavename, passwd, basedir,
-               keepalive, usepty, umask=umask, maxdelay=maxdelay, max_builds=2)
+               keepalive, usepty, umask=umask, maxdelay=maxdelay, maxbuilds=2)
 s.setServiceParent(application)
 
