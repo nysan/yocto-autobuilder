@@ -807,28 +807,6 @@ b4 = {'name': "meta-target",
 yocto_builders.append(b4)
 
 ################################################################################
-# Selectable Targets, for when a nightly fails one or two images
-################################################################################
-f5 = factory.BuildFactory()
-defaultenv['REVISION'] = "HEAD"
-defaultenv['ABTARGET'] = 'test-target'
-makeCheckout(f5)
-fuzzyBuild(f5)
-defaultenv['SLAVEBASEDIR'] = ''
-f5.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
-f5.addStep(ShellCommand(doStepIf=getSlaveBaseDir,
-                    env=copy.copy(defaultenv),
-                    command='echo "Getting the slave basedir"'))
-
-b5 = {'name': "test-target",
-       'slavenames': ["builder1",  "builder1", "builder1", "builder1"],
-      'builddir': "test-target",
-      'factory': f4
-     }
-yocto_builders.append(b5)
-
-
-################################################################################
 #
 # Poky Toolchain Swabber Builder Example Target
 #
@@ -1138,6 +1116,8 @@ defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'nightly-x86-64'
 defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['REVISION'] = "HEAD"
+defaultenv['SLAVEBASEDIR'] = ''
+f67.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
 makeCheckout(f67)
 runPreamble(f67, defaultenv['ABTARGET'])
 defaultenv['SDKMACHINE'] = 'i686'
@@ -1173,6 +1153,8 @@ defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'nightly-arm'
 defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['REVISION'] = "HEAD"
+defaultenv['SLAVEBASEDIR'] = ''
+f68.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
 makeCheckout(f68)
 ##########
 # figure something out here
@@ -1215,6 +1197,8 @@ defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'nightly-mips'
 defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['REVISION'] = "HEAD"
+defaultenv['SLAVEBASEDIR'] = ''
+f69.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
 makeCheckout(f69)
 ##########
 # figure something out here
@@ -1258,6 +1242,8 @@ defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'nightly-ppc'
 defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['REVISION'] = "HEAD"
+defaultenv['SLAVEBASEDIR'] = ''
+f70.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
 makeCheckout(f70)
 runPreamble(f70, defaultenv['ABTARGET'])
 defaultenv['SDKMACHINE'] = 'i686'
@@ -1302,6 +1288,8 @@ defaultenv['BSP_REPO'] = "git://git.pokylinux.org/meta-intel.git"
 defaultenv['BSP_BRANCH'] = "master"
 defaultenv['BSP_WORKDIR'] = "build/yocto/meta-intel"
 defaultenv['BSP_REV'] = "HEAD"
+defaultenv['SLAVEBASEDIR'] = ''
+f170.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
 makeCheckout(f170)
 runPreamble(f170, defaultenv['ABTARGET'])
 runBSPLayerPreamble(f170, defaultenv['ABTARGET'])
@@ -1331,6 +1319,8 @@ defaultenv['BSP_REPO'] = "git://git.pokylinux.org/meta-intel.git"
 defaultenv['BSP_BRANCH'] = "master"
 defaultenv['BSP_WORKDIR'] = "build/yocto/meta-intel"
 defaultenv['BSP_REV'] = "HEAD"
+defaultenv['SLAVEBASEDIR'] = ''
+f175.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
 makeCheckout(f175)
 runPreamble(f175, defaultenv['ABTARGET'])
 runBSPLayerPreamble(f175, defaultenv['ABTARGET'])
@@ -1359,6 +1349,8 @@ defaultenv['BSP_REPO'] = "git://git.pokylinux.org/meta-intel.git"
 defaultenv['BSP_BRANCH'] = "master"
 defaultenv['BSP_WORKDIR'] = "build/yocto/meta-intel"
 defaultenv['BSP_REV'] = "HEAD"
+defaultenv['SLAVEBASEDIR'] = ''
+f180.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
 makeCheckout(f180)
 runPreamble(f180, defaultenv['ABTARGET'])
 runBSPLayerPreamble(f180, defaultenv['ABTARGET'])
@@ -1387,6 +1379,8 @@ defaultenv['BSP_REPO'] = "git://git.pokylinux.org/meta-intel.git"
 defaultenv['BSP_BRANCH'] = "master"
 defaultenv['BSP_WORKDIR'] = "build/yocto/meta-intel"
 defaultenv['BSP_REV'] = "HEAD"
+defaultenv['SLAVEBASEDIR'] = ''
+f190.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
 makeCheckout(f190)
 runPreamble(f190, defaultenv['ABTARGET'])
 runBSPLayerPreamble(f190, defaultenv['ABTARGET'])
@@ -1415,6 +1409,8 @@ defaultenv['BSP_REPO'] = "git://git.pokylinux.org/meta-intel.git"
 defaultenv['BSP_BRANCH'] = "master"
 defaultenv['BSP_WORKDIR'] = "build/yocto/meta-intel"
 defaultenv['BSP_REV'] = "HEAD"
+defaultenv['SLAVEBASEDIR'] = ''
+f200.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
 makeCheckout(f200)
 runPreamble(f200, defaultenv['ABTARGET'])
 runBSPLayerPreamble(f200, defaultenv['ABTARGET'])
@@ -1443,6 +1439,8 @@ defaultenv['BSP_REPO'] = "git://git.pokylinux.org/meta-intel.git"
 defaultenv['BSP_BRANCH'] = "master"
 defaultenv['BSP_WORKDIR'] = "build/yocto/meta-intel"
 defaultenv['BSP_REV'] = "HEAD"
+defaultenv['SLAVEBASEDIR'] = ''
+f210.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
 makeCheckout(f210)
 runPreamble(f210, defaultenv['ABTARGET'])
 runBSPLayerPreamble(f210, defaultenv['ABTARGET'])
@@ -1471,6 +1469,8 @@ defaultenv['BSP_REPO'] = "git://git.pokylinux.org/meta-intel.git"
 defaultenv['BSP_BRANCH'] = "master"
 defaultenv['BSP_WORKDIR'] = "build/yocto/meta-intel"
 defaultenv['BSP_REV'] = "HEAD"
+defaultenv['SLAVEBASEDIR'] = ''
+f220.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
 makeCheckout(f220)
 runPreamble(f220, defaultenv['ABTARGET'])
 runBSPLayerPreamble(f220, defaultenv['ABTARGET'])
@@ -1499,6 +1499,8 @@ defaultenv['BSP_REPO'] = "git://git.pokylinux.org/meta-intel.git"
 defaultenv['BSP_BRANCH'] = "master"
 defaultenv['BSP_WORKDIR'] = "build/yocto/meta-intel"
 defaultenv['BSP_REV'] = "HEAD"
+defaultenv['SLAVEBASEDIR'] = ''
+f225.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
 makeCheckout(f225)
 runPreamble(f225, defaultenv['ABTARGET'])
 runBSPLayerPreamble(f225, defaultenv['ABTARGET'])
