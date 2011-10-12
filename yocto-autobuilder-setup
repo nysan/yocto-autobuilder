@@ -16,7 +16,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+
+#########################################
+# buildbot update wants to parse the config
+# So, we export bogus values just to get the 
+# confgi to parse
+#########################################
+
 export SLAVEBASEDIR=`pwd`/yocto-slave
+export PUBLISH_BUILDS=False
+export PUBLISH_SOURCE_MIRROR=False
+export PUBLISH_SSTATE=False
+export SSTATE_PUBLISH_DIR="/tmp/yocto-autobuilder/sstate_mirror"
+export SOURCE_PUBLISH_DIR="/tmp/yocto-autobuilder/source"
+export BUILD_PUBLISH_DIR="/tmp/yocto-autobuilder/builds"
+export SOURCE_DL_DIR="/tmp/yocto-autobuilder/downloads"
+export SOURCE_SSTATE_DIR="/tmp/yocto-autobuilder/sstate"
+export LSB_SSTATE_DIR="/tmp/yocto-autobuilder/lsb-sstate"
 export PYTHONPATH=`pwd`/lib/python2.6/site-packages/:$PYTHONPATH
 export PATH=`pwd`/bin:`pwd`/yocto-autobuilder/scripts:$PATH
 config_check=`cat ${PWD}/yocto-master/master.cfg|grep "'<USER>', '<PASS>'"`

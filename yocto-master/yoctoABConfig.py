@@ -5,7 +5,6 @@
 # TODO
 # - eclipse plugin * 1 (helios)
 # - tarball is broken 
-# -
 # - make bspworkdir modify bblayers
 # - CI flag
 # - release flag
@@ -85,6 +84,7 @@ defaultenv['FuzzImage'] = ""
 defaultenv['FuzzSDK'] = ""
 defaultenv['machine'] = ""
 defaultenv['DEST'] = ""
+defaultenv['ABTARGET'] = ""
 defaultenv['SDKMACHINE'] = "i686"
 
 class NoOp(buildstep.BuildStep):
@@ -169,6 +169,10 @@ class YoctoBlocker(buildbot.steps.blocker.Blocker):
         buildStatus2.getProperties()["DEST"]
 
 def createBBLayersConf(factory, btarget=None, bsplayer=False):
+    factory.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
+    factory.addStep(ShellCommand(doStepIf=getSlaveBaseDir,
+                    env=copy.copy(defaultenv),
+                    command='echo "Getting the slave basedir"'))
     factory.addStep(ShellCommand(description="Creating bblayers.conf",
                     command=["sh", "-c", WithProperties("echo '' > %s/" + defaultenv['ABTARGET'] + "/build/build/conf/bblayers.conf", 'SLAVEBASEDIR')],
                     timeout=60))
@@ -213,6 +217,10 @@ def createBBLayersConf(factory, btarget=None, bsplayer=False):
                         timeout=60))
 
 def createAutoConf(factory, btarget=None, distro=None):
+    factory.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
+    factory.addStep(ShellCommand(doStepIf=getSlaveBaseDir,
+                    env=copy.copy(defaultenv),
+                    command='echo "Getting the slave basedir"'))
     factory.addStep(ShellCommand(description="Creating auto.conf",
                     command=["sh", "-c", WithProperties("echo '' > %s/" + defaultenv['ABTARGET'] + "/build/build/conf/auto.conf", 'SLAVEBASEDIR')],
                     timeout=60))
@@ -887,7 +895,7 @@ f61.addStep(ShellCommand, description="Building eclipse plugin",
             timeout=600)
 f61.addStep(ShellCommand, description="Building eclipse plugin",
             workdir="build/eclipse-plugin/scripts",
-            command=WithProperties("ECLIPSE_HOME=%s/eclipse-plugin-helios/build/eclipse-plugin/scripts/eclipse ./build.sh ADT_helios rc4", SLAVEBASEDIR),
+            command=WithProperties("ECLIPSE_HOME=%s/eclipse-plugin-helios/build/eclipse-plugin/scripts/eclipse ./build.sh ADT_helios rc4", "SLAVEBASEDIR"),
             timeout=600)
 if PUBLISH_BUILDS == "True":
     f61.addStep(ShellCommand(
@@ -918,7 +926,7 @@ yocto_builders.append(b61)
 
 f62 = factory.BuildFactory()
 defaultenv['SLAVEBASEDIR'] = ''
-f65.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
+f62.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
 f62.addStep(ShellCommand, description="cleaning up eclipse build dir",
             command="rm -rf *",
             workdir=WithProperties("%s", "workdir"))
@@ -934,7 +942,7 @@ f62.addStep(ShellCommand, description="Building eclipse plugin",
             timeout=600)
 f62.addStep(ShellCommand, description="Building eclipse plugin",
             workdir="build/eclipse-plugin/scripts",
-            command=WithProperties("ECLIPSE_HOME=%s/eclipse-plugin-helios/build/eclipse-plugin/scripts/eclipse ./build.sh ADT_helios rc4", SLAVEBASEDIR),
+            command=WithProperties("ECLIPSE_HOME=%s/eclipse-plugin-helios/build/eclipse-plugin/scripts/eclipse ./build.sh ADT_helios rc4", "SLAVEBASEDIR"),
             timeout=600)
 if PUBLISH_BUILDS == "True":
     f62.addStep(ShellCommand(
@@ -964,7 +972,7 @@ defaultenv['DISTRO'] = 'poky'
 defaultenv['ABTARGET'] = 'nightly'
 defaultenv['ENABLE_SWABBER'] = 'false'
 defaultenv['REVISION'] = "HEAD"
-defaultenv['SLAVEBASEDIR'] = ''
+defaultenv['SLAVEBASEDIR'] = ""
 f65.addStep(SetPropertiesFromEnv(variables=["SLAVEBASEDIR"]))
 f65.addStep(ShellCommand(doStepIf=getSlaveBaseDir,
                     env=copy.copy(defaultenv),
