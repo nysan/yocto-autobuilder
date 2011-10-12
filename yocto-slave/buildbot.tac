@@ -29,13 +29,13 @@ except ImportError:
 buildmaster_host = 'localhost'
 port = 9989
 slavename = 'builder1'
-passwd = 'XXSjOq5tQ'
+passwd = '<PASS>'
 keepalive = 600
 usepty = 0
 umask = 022
 maxdelay = 300
 
 s = BuildSlave(buildmaster_host, port, slavename, passwd, basedir,
-               keepalive, usepty, umask=umask, maxdelay=maxdelay, maxbuilds=2)
+               keepalive, usepty, umask=umask, maxdelay=maxdelay, max_builds=2)
 s.setServiceParent(application)
 
